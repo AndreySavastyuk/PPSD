@@ -1,0 +1,10 @@
+# Qt6 зависимости (заменим PyQt5 на PySide6)
+PySide6==6.9.0
+SQLAlchemy==2.0.41
+reportlab==4.0.4
+qrcode==7.4.2
+python-telegram-bot==13.15
+pillow==11.1.0
+pdfkit==1.0.0
+bcrypt==4.0.1
+python-dotenv==1.0.0 

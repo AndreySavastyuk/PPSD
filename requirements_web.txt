@@ -1,0 +1,41 @@
+# Основные зависимости для веб-сервисов ППСД
+# Базовые веб-фреймворки
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+flask==3.0.0
+flask-cors==4.0.0
+
+# Telegram бот
+python-telegram-bot==20.6
+
+# Работа с данными
+pandas==2.1.3
+requests==2.31.0
+
+# База данных (уже в основном requirements.txt)
+sqlalchemy==2.0.23
+
+# Email уведомления
+secure-smtplib==0.1.1
+
+# Веб push уведомления (для будущей реализации)
+pywebpush==1.14.0
+
+# Дополнительные утилиты
+python-dotenv==1.0.0
+pydantic==2.5.0
+
+# Безопасность
+cryptography==41.0.7
+passlib[bcrypt]==1.7.4
+
+# Работа с изображениями для QR
+pillow==10.1.0
+
+# Экспорт в различные форматы
+openpyxl==3.1.2
+reportlab==4.0.4
+
+# Мониторинг и логирование
+prometheus-client==0.19.0
+structlog==23.2.0 

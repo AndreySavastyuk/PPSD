@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ППСД - Система проверки сертификатных данных</title>
+    
+    <!-- Material Design Icons -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <!-- Inter Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary-color: #2196F3;
+            --primary-dark: #1976D2;
+            --primary-light: #BBDEFB;
+            --secondary-color: #4CAF50;
+            --secondary-dark: #388E3C;
+            --accent-color: #FF9800;
+            --error-color: #F44336;
+            --warning-color: #FF9800;
+            --success-color: #4CAF50;
+            --background-color: #FAFAFA;
+            --surface-color: #FFFFFF;
+            --text-primary: #212121;
+            --text-secondary: #757575;
+            --border-color: #E0E0E0;
+            --shadow: 0 2px 4px rgba(0,0,0,0.1);
+            --shadow-lg: 0 4px 8px rgba(0,0,0,0.15);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+            color: white;
+            padding: 1rem 0;
+            box-shadow: var(--shadow-lg);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .user-avatar {
+            width: 36px;
+            height: 36px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .main-content {
+            padding: 2rem 0;
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: 1fr 2fr 1fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .card {
+            background: var(--surface-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border-color);
+        }
+
+        .card-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        .stat-card {
+            background: var(--surface-color);
+            border-radius: 8px;
+            padding: 1.5rem;
+            text-align: center;
+            box-shadow: var(--shadow);
+            border-left: 4px solid var(--primary-color);
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+
+        .materials-section {
+            margin-top: 2rem;
+        }
+
+        .toolbar {
+            background: var(--surface-color);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            flex-wrap: wrap;
+            box-shadow: var(--shadow);
+        }
+
+        .search-box {
+            display: flex;
+            align-items: center;
+            background: var(--background-color);
+            border: 2px solid var(--border-color);
+            border-radius: 6px;
+            padding: 0.5rem 1rem;
+            flex: 1;
+            min-width: 300px;
+        }
+
+        .search-box input {
+            border: none;
+            outline: none;
+            background: transparent;
+            flex: 1;
+            padding: 0.25rem 0;
+            font-size: 0.875rem;
+        }
+
+        .btn {
+            padding: 0.625rem 1.25rem;
+            border: none;
+            border-radius: 6px;
+            font-weight: 500;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.2s;
+            text-decoration: none;
+            font-size: 0.875rem;
+        }
+
+        .btn-primary {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background: var(--secondary-color);
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: var(--secondary-dark);
+            transform: translateY(-1px);
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 2px solid var(--border-color);
+            color: var(--text-primary);
+        }
+
+        .btn-outline:hover {
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+        }
+
+        .materials-table {
+            background: var(--surface-color);
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: var(--shadow);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        th {
+            background: var(--background-color);
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        tr:hover {
+            background: rgba(33, 150, 243, 0.04);
+        }
+
+        .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            display: inline-block;
+        }
+
+        .status-received {
+            background: #E3F2FD;
+            color: #1976D2;
+        }
+
+        .status-checking {
+            background: #FFF3E0;
+            color: #F57C00;
+        }
+
+        .status-approved {
+            background: #E8F5E8;
+            color: #2E7D32;
+        }
+
+        .status-rejected {
+            background: #FFEBEE;
+            color: #C62828;
+        }
+
+        .quick-actions {
+            background: var(--surface-color);
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: var(--shadow);
+        }
+
+        .action-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 1rem;
+            margin: 0.5rem 0;
+            border-radius: 6px;
+            text-decoration: none;
+            color: var(--text-primary);
+            transition: all 0.2s;
+            border: 1px solid var(--border-color);
+        }
+
+        .action-btn:hover {
+            background: var(--primary-light);
+            border-color: var(--primary-color);
+            transform: translateX(4px);
+        }
+
+        .notifications {
+            background: var(--surface-color);
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: var(--shadow);
+        }
+
+        .notification-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .notification-item:last-child {
+            border-bottom: none;
+        }
+
+        .notification-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            color: white;
+        }
+
+        .notification-info {
+            background: var(--primary-color);
+        }
+
+        .notification-warning {
+            background: var(--warning-color);
+        }
+
+        .notification-success {
+            background: var(--success-color);
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+            
+            .container {
+                padding: 0 1rem;
+            }
+            
+            .toolbar {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .search-box {
+                min-width: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">
+                    <div class="logo-icon">
+                        <span class="material-icons">engineering</span>
+                    </div>
+                    <div>
+                        <h1>ППСД</h1>
+                        <p style="font-size: 0.875rem; opacity: 0.9;">Система проверки сертификатных данных</p>
+                    </div>
+                </div>
+                <div class="user-info">
+                    <div>
+                        <div style="font-weight: 500;">Пользователь</div>
+                        <div style="font-size: 0.875rem; opacity: 0.9;" id="user-role">Кладовщик</div>
+                    </div>
+                    <div class="user-avatar">
+                        <span class="material-icons">person</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <div class="container">
+            <!-- Статистика -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value" id="total-materials">-</div>
+                    <div class="stat-label">Всего материалов</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="pending-qc">-</div>
+                    <div class="stat-label">Ожидают проверки</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="approved-count">-</div>
+                    <div class="stat-label">Одобрено</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="rejected-count">-</div>
+                    <div class="stat-label">Отклонено</div>
+                </div>
+            </div>
+
+            <!-- Дашборд -->
+            <div class="dashboard">
+                <!-- Быстрые действия -->
+                <div class="card">
+                    <div class="card-title">
+                        <span class="material-icons">flash_on</span>
+                        Быстрые действия
+                    </div>
+                    <div class="quick-actions">
+                        <a href="#" class="action-btn" onclick="showAddMaterialDialog()">
+                            <span class="material-icons">add_circle</span>
+                            Добавить материал
+                        </a>
+                        <a href="#" class="action-btn" onclick="generateQR()">
+                            <span class="material-icons">qr_code</span>
+                            Генерировать QR-код
+                        </a>
+                        <a href="#" class="action-btn" onclick="exportToExcel()">
+                            <span class="material-icons">table_chart</span>
+                            Экспорт в Excel
+                        </a>
+                        <a href="/docs" class="action-btn" target="_blank">
+                            <span class="material-icons">api</span>
+                            API Документация
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Основной контент -->
+                <div class="card">
+                    <div class="card-title">
+                        <span class="material-icons">inventory_2</span>
+                        Материалы на складе
+                    </div>
+                    
+                    <!-- Панель инструментов -->
+                    <div class="toolbar">
+                        <div class="search-box">
+                            <span class="material-icons" style="color: var(--text-secondary);">search</span>
+                            <input type="text" placeholder="Поиск по марке, партии, плавке..." id="search-input">
+                        </div>
+                        <select id="status-filter" class="btn btn-outline">
+                            <option value="">Все статусы</option>
+                            <option value="received">Получен на склад</option>
+                            <option value="qc_pending">Ожидает проверки ОТК</option>
+                            <option value="approved">Одобрен</option>
+                            <option value="rejected">Отклонен</option>
+                        </select>
+                        <button class="btn btn-outline" onclick="refreshMaterials()">
+                            <span class="material-icons">refresh</span>
+                            Обновить
+                        </button>
+                    </div>
+
+                    <!-- Таблица материалов -->
+                    <div class="materials-table">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Марка материала</th>
+                                    <th>Тип</th>
+                                    <th>Партия</th>
+                                    <th>Плавка</th>
+                                    <th>Поставщик</th>
+                                    <th>Статус</th>
+                                    <th>Дата</th>
+                                    <th>Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody id="materials-tbody">
+                                <tr>
+                                    <td colspan="8" style="text-align: center; padding: 2rem;">
+                                        <div class="loading"></div>
+                                        Загрузка данных...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Уведомления -->
+                <div class="card">
+                    <div class="card-title">
+                        <span class="material-icons">notifications</span>
+                        Уведомления
+                    </div>
+                    <div class="notifications" id="notifications-container">
+                        <div class="notification-item">
+                            <div class="notification-icon notification-info">
+                                <span class="material-icons">info</span>
+                            </div>
+                            <div>
+                                <div style="font-weight: 500;">Система запущена</div>
+                                <div style="font-size: 0.875rem; color: var(--text-secondary);">Веб-интерфейс готов к работе</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // API базовый URL
+        const API_BASE = 'http://localhost:8000';
+        
+        // Загрузка данных при запуске
+        document.addEventListener('DOMContentLoaded', function() {
+            loadStatistics();
+            loadMaterials();
+            setupEventListeners();
+        });
+
+        function setupEventListeners() {
+            // Поиск в реальном времени
+            const searchInput = document.getElementById('search-input');
+            const statusFilter = document.getElementById('status-filter');
+            
+            let searchTimeout;
+            searchInput.addEventListener('input', function() {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => {
+                    loadMaterials();
+                }, 300);
+            });
+            
+            statusFilter.addEventListener('change', loadMaterials);
+        }
+
+        async function loadStatistics() {
+            try {
+                const response = await fetch(`${API_BASE}/statistics`);
+                const stats = await response.json();
+                
+                document.getElementById('total-materials').textContent = stats.total_materials || 0;
+                document.getElementById('pending-qc').textContent = stats.pending_qc || 0;
+                document.getElementById('approved-count').textContent = stats.approved || 0;
+                document.getElementById('rejected-count').textContent = stats.rejected || 0;
+            } catch (error) {
+                console.error('Ошибка загрузки статистики:', error);
+                showNotification('Ошибка загрузки статистики', 'warning');
+            }
+        }
+
+        async function loadMaterials() {
+            const searchTerm = document.getElementById('search-input').value;
+            const statusFilter = document.getElementById('status-filter').value;
+            
+            try {
+                let url = `${API_BASE}/materials`;
+                const params = new URLSearchParams();
+                if (searchTerm) params.append('search', searchTerm);
+                if (statusFilter) params.append('status', statusFilter);
+                if (params.toString()) url += '?' + params.toString();
+                
+                const response = await fetch(url);
+                const materials = await response.json();
+                
+                displayMaterials(materials);
+            } catch (error) {
+                console.error('Ошибка загрузки материалов:', error);
+                showNotification('Ошибка загрузки материалов', 'warning');
+                document.getElementById('materials-tbody').innerHTML = 
+                    '<tr><td colspan="8" style="text-align: center; color: var(--error-color);">Ошибка загрузки данных</td></tr>';
+            }
+        }
+
+        function displayMaterials(materials) {
+            const tbody = document.getElementById('materials-tbody');
+            
+            if (!materials.length) {
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align: center;">Материалы не найдены</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = materials.map(material => `
+                <tr>
+                    <td><strong>${material.material_grade}</strong></td>
+                    <td>${material.material_type}</td>
+                    <td>${material.batch_number || '-'}</td>
+                    <td>${material.melt_number}</td>
+                    <td>${material.supplier_name || 'Неизвестно'}</td>
+                    <td><span class="status-badge status-${getStatusClass(material.status)}">${getStatusName(material.status)}</span></td>
+                    <td>${new Date(material.created_at).toLocaleDateString('ru-RU')}</td>
+                    <td>
+                        <button class="btn btn-outline" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;" onclick="editMaterial(${material.id})">
+                            <span class="material-icons" style="font-size: 16px;">edit</span>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function getStatusClass(status) {
+            const statusMap = {
+                'received': 'received',
+                'qc_check_pending': 'checking',
+                'approved': 'approved',
+                'rejected': 'rejected'
+            };
+            return statusMap[status] || 'received';
+        }
+
+        function getStatusName(status) {
+            const statusNames = {
+                'received': 'Получен на склад',
+                'qc_check_pending': 'Ожидает проверки ОТК',
+                'qc_checked': 'Проверен ОТК',
+                'approved': 'Одобрен',
+                'rejected': 'Отклонен'
+            };
+            return statusNames[status] || status;
+        }
+
+        function refreshMaterials() {
+            loadStatistics();
+            loadMaterials();
+            showNotification('Данные обновлены', 'success');
+        }
+
+        function showAddMaterialDialog() {
+            alert('Функция добавления материала будет реализована в следующей версии');
+        }
+
+        function editMaterial(id) {
+            alert(`Редактирование материала #${id} будет реализовано в следующей версии`);
+        }
+
+        function generateQR() {
+            alert('Генерация QR-кода будет реализована в следующей версии');
+        }
+
+        function exportToExcel() {
+            window.open(`${API_BASE}/export/materials/excel`, '_blank');
+        }
+
+        function showNotification(message, type = 'info') {
+            const container = document.getElementById('notifications-container');
+            const iconMap = {
+                'info': 'info',
+                'success': 'check_circle',
+                'warning': 'warning',
+                'error': 'error'
+            };
+            
+            const notification = document.createElement('div');
+            notification.className = 'notification-item';
+            notification.innerHTML = `
+                <div class="notification-icon notification-${type}">
+                    <span class="material-icons">${iconMap[type]}</span>
+                </div>
+                <div>
+                    <div style="font-weight: 500;">${message}</div>
+                    <div style="font-size: 0.875rem; color: var(--text-secondary);">Только что</div>
+                </div>
+            `;
+            
+            container.insertBefore(notification, container.firstChild);
+            
+            // Удаляем через 5 секунд
+            setTimeout(() => {
+                notification.remove();
+            }, 5000);
+        }
+    </script>
+</body>
+</html> 

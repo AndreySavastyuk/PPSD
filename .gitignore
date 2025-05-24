@@ -1,0 +1,87 @@
+# Python virtual environment
+venv/
+.venv/
+env/
+ENV/
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+
+# Log files
+logs/
+*.log
+
+# Environment variables
+.env.local
+.env.*.local
+.env
+
+# Temporary files
+*.tmp
+*.bak
+.DS_Store
+
+# IDE specific files
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+
+# Executable files and large files
+*.exe
+*.dll
+*.so
+*.dylib
+*.pdf
+
+# Certificates and large documents
+docs_storage/
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Test data and output
+icons_test_output.txt
+test_*.py
+*_test_output.txt
+
+# Large binary/media files
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.mp4
+*.zip
+*.rar
+
+# Cache folders
+.cache/
+__pycache__/
+
+# Исключения для автотестов и pre-commit
+.pytest_cache/
+.coverage
+htmlcov/
+__pycache__/
+*.xlsx
+*.xls
+
+# PySide6/Qt больше файлы
+*Qt6*.dll
+*Qt5*.dll
+*Qt*.dylib
+*Qt*.so
+
+# Все файлы виртуального окружения
+/venv/
+**/venv/
+**/.venv/
+**/env/
+**/ENV/
