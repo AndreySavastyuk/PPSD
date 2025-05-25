@@ -2,7 +2,7 @@
 
 from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
                               QGridLayout, QFrame, QScrollArea, QPushButton,
-                              QTabWidget, QSplitter)
+                              QTabWidget, QSplitter, QSizePolicy)
 from PySide6.QtCore import Qt, QTimer, Signal
 from PySide6.QtGui import QFont, QPainter, QBrush, QColor, QPen
 from database.connection import SessionLocal
@@ -11,6 +11,7 @@ from sqlalchemy import func, and_, or_
 from datetime import datetime, timedelta
 from ui.themes import theme_manager
 from ui.icons.icon_provider import IconProvider
+from ui.styles import apply_button_style
 
 try:
     from ui.components.charts import MetricsPanel, BarChart, DonutChart
@@ -23,7 +24,7 @@ except ImportError:
     QuickSearchBar = None
 
 class MetricCard(QFrame):
-    """Карточка с метрикой"""
+    """Карточка с метрикой - адаптивная версия"""
     
     clicked = Signal()
     
@@ -40,7 +41,9 @@ class MetricCard(QFrame):
         
     def init_ui(self):
         """Инициализация интерфейса карточки"""
-        self.setFixedSize(250, 120)
+        # Убираем фиксированный размер, используем гибкие политики
+        self.setMinimumSize(200, 100)
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
         
         layout = QVBoxLayout(self)
@@ -52,7 +55,6 @@ class MetricCard(QFrame):
         
         self.title_label = QLabel(self.title)
         self.title_label.setFont(QFont("Segoe UI", 11))
-        self.title_label.setStyleSheet(f"color: {theme_manager.get_color('text_secondary')};")
         header_layout.addWidget(self.title_label)
         
         header_layout.addStretch()
@@ -67,34 +69,21 @@ class MetricCard(QFrame):
         # Значение
         self.value_label = QLabel(self.value)
         self.value_label.setFont(QFont("Segoe UI", 24, QFont.Weight.Bold))
-        self.value_label.setStyleSheet(f"color: {theme_manager.get_color('text_primary')};")
         layout.addWidget(self.value_label)
         
         # Подзаголовок
         if self.subtitle:
             self.subtitle_label = QLabel(self.subtitle)
             self.subtitle_label.setFont(QFont("Segoe UI", 9))
-            self.subtitle_label.setStyleSheet(f"color: {theme_manager.get_color('text_secondary')};")
             layout.addWidget(self.subtitle_label)
         
         layout.addStretch()
     
     def apply_styles(self):
-        """Применение стилей к карточке"""
-        colors = theme_manager.get_current_theme()['colors']
-        
-        self.setStyleSheet(f"""
-        MetricCard {{
-            background-color: {colors['card']};
-            border: 1px solid {colors['border']};
-            border-radius: 12px;
-            border-left: 4px solid {self.color_accent};
-        }}
-        MetricCard:hover {{
-            background-color: {colors['hover']};
-            border-color: {self.color_accent};
-        }}
-        """)
+        """Применение стилей к карточке через QSS"""
+        # Устанавливаем свойства для QSS селекторов
+        self.setProperty("card_type", "metric")
+        self.setProperty("accent_color", self.color_accent)
     
     def mousePressEvent(self, event):
         """Обработка клика по карточке"""
@@ -109,7 +98,7 @@ class MetricCard(QFrame):
             self.subtitle_label.setText(new_subtitle)
 
 class Dashboard(QWidget):
-    """Главный виджет дашборда"""
+    """Главный виджет дашборда с современным дизайном"""
     
     def __init__(self, user=None):
         super().__init__()
@@ -120,18 +109,30 @@ class Dashboard(QWidget):
         self.setup_timer()
         self.load_metrics()
     
+    def refresh_styles(self):
+        """Обновить стили после смены темы"""
+        try:
+            # Обновляем стили карточек
+            for card in self.metric_cards.values():
+                if hasattr(card, 'apply_styles'):
+                    card.apply_styles()
+            
+            # Обновляем весь виджет
+            self.update()
+        except Exception as e:
+            print(f"Ошибка обновления стилей в dashboard: {e}")
+    
     def init_ui(self):
         """Инициализация интерфейса дашборда"""
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(20, 20, 20, 20)
-        layout.setSpacing(20)
+        main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(16, 16, 16, 16)
+        main_layout.setSpacing(16)
         
-        # Заголовок
+        # Заголовок с адаптивным layout
         header_layout = QHBoxLayout()
         
         title_label = QLabel("Дашборд системы контроля качества")
         title_label.setFont(QFont("Segoe UI", 20, QFont.Weight.Bold))
-        title_label.setStyleSheet(f"color: {theme_manager.get_color('text_primary')};")
         header_layout.addWidget(title_label)
         
         header_layout.addStretch()
@@ -140,19 +141,21 @@ class Dashboard(QWidget):
         refresh_btn = QPushButton("Обновить")
         refresh_btn.setIcon(IconProvider.create_refresh_icon())
         refresh_btn.clicked.connect(self.load_metrics)
-        refresh_btn.setStyleSheet(theme_manager.get_button_style('neutral'))
+        apply_button_style(refresh_btn, 'default')
         header_layout.addWidget(refresh_btn)
         
-        layout.addLayout(header_layout)
+        main_layout.addLayout(header_layout)
         
         # Создаем прокручиваемую область
         scroll_area = QScrollArea()
         scroll_area.setWidgetResizable(True)
         scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        scroll_area.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         
         scroll_widget = QWidget()
         scroll_layout = QVBoxLayout(scroll_widget)
+        scroll_layout.setContentsMargins(8, 8, 8, 8)
         scroll_layout.setSpacing(20)
         
         # Основные метрики
@@ -170,20 +173,21 @@ class Dashboard(QWidget):
         scroll_layout.addStretch()
         
         scroll_area.setWidget(scroll_widget)
-        layout.addWidget(scroll_area)
+        main_layout.addWidget(scroll_area)
     
     def create_main_metrics_section(self) -> QVBoxLayout:
-        """Создание секции основных метрик"""
+        """Создание секции основных метрик с адаптивным grid"""
         layout = QVBoxLayout()
+        layout.setSpacing(12)
         
         section_label = QLabel("Общие показатели")
         section_label.setFont(QFont("Segoe UI", 16, QFont.Weight.Bold))
-        section_label.setStyleSheet(f"color: {theme_manager.get_color('text_primary')};")
         layout.addWidget(section_label)
         
-        # Сетка карточек
+        # Адаптивная сетка карточек
         grid_layout = QGridLayout()
-        grid_layout.setSpacing(16)
+        grid_layout.setSpacing(12)
+        grid_layout.setRowStretch(0, 1)  # Позволяем строкам растягиваться
         
         # Карточка общего количества материалов
         self.metric_cards['total_materials'] = MetricCard(
@@ -201,21 +205,25 @@ class Dashboard(QWidget):
         )
         grid_layout.addWidget(self.metric_cards['active_samples'], 0, 1)
         
-        # Карточка завершенных испытаний
-        self.metric_cards['completed_tests'] = MetricCard(
-            "Завершено испытаний", "0", "за неделю",
-            IconProvider.create_lab_icon(),
-            theme_manager.get_color('success')
-        )
-        grid_layout.addWidget(self.metric_cards['completed_tests'], 0, 2)
-        
-        # Карточка пользователей онлайн
-        self.metric_cards['users_online'] = MetricCard(
-            "Пользователи", "0", "активные",
-            IconProvider.create_settings_icon(),
+        # Карточка пользователей
+        self.metric_cards['total_users'] = MetricCard(
+            "Пользователи", "0", "зарегистрировано",
+            IconProvider.create_user_icon(),
             theme_manager.get_color('info')
         )
-        grid_layout.addWidget(self.metric_cards['users_online'], 0, 3)
+        grid_layout.addWidget(self.metric_cards['total_users'], 0, 2)
+        
+        # Карточка за сегодня
+        self.metric_cards['today_entries'] = MetricCard(
+            "За сегодня", "0", "новых записей",
+            IconProvider.create_material_entry_icon(),
+            theme_manager.get_color('success')
+        )
+        grid_layout.addWidget(self.metric_cards['today_entries'], 0, 3)
+        
+        # Устанавливаем равные веса колонок для адаптивности
+        for col in range(4):
+            grid_layout.setColumnStretch(col, 1)
         
         layout.addLayout(grid_layout)
         return layout
@@ -306,23 +314,22 @@ class Dashboard(QWidget):
                 self.metric_cards['total_materials'].update_value(str(total_materials))
                 
                 active_samples = session.query(Sample).filter(
-                    Sample.status.in_(['CREATED', 'IN_TESTING'])
+                    Sample.status.in_(['created', 'prepared', 'testing'])
                 ).count()
                 self.metric_cards['active_samples'].update_value(str(active_samples))
                 
-                # Завершенные испытания за неделю
-                week_ago = datetime.now() - timedelta(days=7)
-                completed_tests = session.query(LabTest).filter(
-                    and_(
-                        LabTest.completed_at >= week_ago,
-                        LabTest.is_passed != None
-                    )
-                ).count()
-                self.metric_cards['completed_tests'].update_value(str(completed_tests))
-                
                 # Пользователи (общее количество)
                 total_users = session.query(User).count()
-                self.metric_cards['users_online'].update_value(str(total_users))
+                self.metric_cards['total_users'].update_value(str(total_users))
+                
+                # Записи за сегодня
+                today = datetime.now().date()
+                today_start = datetime.combine(today, datetime.min.time())
+                
+                today_entries = session.query(MaterialEntry).filter(
+                    MaterialEntry.created_at >= today_start
+                ).count()
+                self.metric_cards['today_entries'].update_value(str(today_entries))
                 
                 # Метрики по статусам
                 for status in ['RECEIVED', 'QC_CHECK_PENDING', 'QC_CHECKED', 'TESTING', 'APPROVED']:
@@ -331,9 +338,6 @@ class Dashboard(QWidget):
                         self.metric_cards[f'status_{status}'].update_value(str(count))
                 
                 # Активность за сегодня
-                today = datetime.now().date()
-                today_start = datetime.combine(today, datetime.min.time())
-                
                 today_materials = session.query(MaterialEntry).filter(
                     MaterialEntry.created_at >= today_start
                 ).count()

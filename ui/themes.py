@@ -3,6 +3,7 @@
 Поддержка светлой и темной тем
 """
 
+import os
 from enum import Enum
 from typing import Dict, Any
 
@@ -16,6 +17,7 @@ class ThemeManager:
     def __init__(self):
         self.current_theme = ThemeType.LIGHT
         self._themes = self._initialize_themes()
+        self._qss_cache = {}
     
     def _initialize_themes(self) -> Dict[str, Dict[str, Any]]:
         """Инициализация всех тем"""
@@ -120,6 +122,25 @@ class ThemeManager:
             }
         }
     
+    def load_qss_theme(self, theme_type: ThemeType) -> str:
+        """Загрузить QSS стили для указанной темы"""
+        if theme_type.value in self._qss_cache:
+            return self._qss_cache[theme_type.value]
+        
+        qss_path = os.path.join("resources", "styles", f"{theme_type.value}.qss")
+        
+        try:
+            if os.path.exists(qss_path):
+                with open(qss_path, "r", encoding="utf-8") as f:
+                    qss_content = f.read()
+                    self._qss_cache[theme_type.value] = qss_content
+                    return qss_content
+        except Exception as e:
+            print(f"Ошибка загрузки QSS файла {qss_path}: {e}")
+        
+        # Fallback на старый метод генерации стилей
+        return self.generate_stylesheet()
+    
     def set_theme(self, theme_type: ThemeType):
         """Установить текущую тему"""
         self.current_theme = theme_type
@@ -135,6 +156,10 @@ class ThemeManager:
     def get_font(self, font_property: str) -> str:
         """Получить свойство шрифта из текущей темы"""
         return self.get_current_theme()['fonts'].get(font_property, '14px')
+    
+    def get_current_stylesheet(self) -> str:
+        """Получить стили для текущей темы"""
+        return self.load_qss_theme(self.current_theme)
     
     def generate_stylesheet(self) -> str:
         """Генерация основного стиля приложения"""

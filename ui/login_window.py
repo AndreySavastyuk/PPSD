@@ -3,7 +3,7 @@ import os
 import logging
 from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, 
                              QHBoxLayout, QLabel, QLineEdit, QPushButton, 
-                             QMessageBox, QFrame, QComboBox)
+                             QMessageBox, QFrame, QComboBox, QSizePolicy)
 from PySide6.QtGui import QFont, QIcon, QPixmap
 from PySide6.QtCore import Qt
 
@@ -13,6 +13,7 @@ from sqlalchemy import text
 from models.models import UserRole, User
 from ui.themes import theme_manager
 from ui.notifications import notification_manager
+from ui.styles import apply_button_style, apply_input_style, apply_combobox_style
 
 # Настройка логирования для входа
 login_logger = logging.getLogger('login')
@@ -21,86 +22,111 @@ class LoginWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         
-        # Window properties
+        # Window properties с гибкими размерами
         self.setWindowTitle("ППСД - Вход в систему")
-        self.setMinimumSize(400, 300)
+        self.setMinimumSize(450, 350)
+        self.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
         self.setWindowFlags(Qt.WindowType.WindowCloseButtonHint | Qt.WindowMinimizeButtonHint)
         
-        # Применяем тему
-        self.setStyleSheet(theme_manager.generate_stylesheet())
+        # Применяем QSS стили
+        self.setStyleSheet(theme_manager.get_current_stylesheet())
         
         # Create central widget and main layout
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
         
         main_layout = QVBoxLayout(central_widget)
-        main_layout.setContentsMargins(20, 20, 20, 20)
-        main_layout.setSpacing(15)
+        main_layout.setContentsMargins(24, 24, 24, 24)
+        main_layout.setSpacing(16)
         
         # Add header
         header_label = QLabel("Система проверки сертификатных данных")
-        header_label.setFont(QFont("Arial", 16, QFont.Weight.Bold))
+        header_label.setFont(QFont("Segoe UI", 18, QFont.Weight.Bold))
         header_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        header_label.setObjectName("loginTitle")
         main_layout.addWidget(header_label)
         
         # Add subtitle
         subtitle_label = QLabel("Авторизация пользователя")
-        subtitle_label.setFont(QFont("Arial", 12))
+        subtitle_label.setFont(QFont("Segoe UI", 12))
         subtitle_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        subtitle_label.setObjectName("loginSubtitle")
         main_layout.addWidget(subtitle_label)
         
         # Add separator line
         line = QFrame()
         line.setFrameShape(QFrame.Shape.HLine)
         line.setFrameShadow(QFrame.Shadow.Sunken)
+        line.setObjectName("loginSeparator")
         main_layout.addWidget(line)
         
-        # Create login form container
-        form_container = QWidget()
+        # Create login form container с гибким layout
+        form_container = QFrame()
+        form_container.setObjectName("loginFormContainer")
         form_layout = QVBoxLayout(form_container)
-        form_layout.setContentsMargins(30, 10, 30, 10)
-        form_layout.setSpacing(10)
+        form_layout.setContentsMargins(32, 16, 32, 16)
+        form_layout.setSpacing(12)
         
         # Username field
         username_label = QLabel("Имя пользователя:")
+        username_label.setFont(QFont("Segoe UI", 11, QFont.Weight.Bold))
         self.username_input = QLineEdit()
         self.username_input.setPlaceholderText("Введите имя пользователя")
+        self.username_input.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        apply_input_style(self.username_input)
         form_layout.addWidget(username_label)
         form_layout.addWidget(self.username_input)
         
         # Password field
         password_label = QLabel("Пароль:")
+        password_label.setFont(QFont("Segoe UI", 11, QFont.Weight.Bold))
         self.password_input = QLineEdit()
         self.password_input.setPlaceholderText("Введите пароль")
         self.password_input.setEchoMode(QLineEdit.Password)
+        self.password_input.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        apply_input_style(self.password_input)
         form_layout.addWidget(password_label)
         form_layout.addWidget(self.password_input)
         
         # Login button
         self.login_button = QPushButton("Войти")
-        self.login_button.setMinimumHeight(40)
+        self.login_button.setMinimumHeight(44)
+        self.login_button.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self.login_button.clicked.connect(self.login)
-        self.login_button.setStyleSheet(theme_manager.get_button_style('primary'))
+        apply_button_style(self.login_button, 'primary')
         form_layout.addWidget(self.login_button)
         
-        # Role selection for test login
-        test_login_container = QWidget()
-        test_login_layout = QHBoxLayout(test_login_container)
-        test_login_layout.setContentsMargins(0, 0, 0, 0)
-
+        # Test login section с гибким layout
+        test_login_container = QFrame()
+        test_login_container.setObjectName("testLoginContainer")
+        test_login_layout = QVBoxLayout(test_login_container)
+        test_login_layout.setContentsMargins(0, 8, 0, 0)
+        test_login_layout.setSpacing(8)
+        
+        # Role selection
+        role_layout = QHBoxLayout()
+        role_label = QLabel("Роль для тестового входа:")
+        role_label.setFont(QFont("Segoe UI", 10))
+        role_layout.addWidget(role_label)
+        
         self.role_combo = QComboBox()
         self.role_combo.addItem("Кладовщик", UserRole.WAREHOUSE.value)
         self.role_combo.addItem("Сотрудник ОТК", UserRole.QC.value)
         self.role_combo.addItem("Инженер ЦЗЛ", UserRole.LAB.value)
         self.role_combo.addItem("Производство", UserRole.PRODUCTION.value)
         self.role_combo.addItem("Администратор", UserRole.ADMIN.value)
-        test_login_layout.addWidget(self.role_combo)
+        self.role_combo.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        apply_combobox_style(self.role_combo)
+        role_layout.addWidget(self.role_combo)
+        
+        test_login_layout.addLayout(role_layout)
         
         # Test login button
         self.test_login_button = QPushButton("Тестовый вход (без пароля)")
-        self.test_login_button.setMinimumHeight(30)
+        self.test_login_button.setMinimumHeight(36)
+        self.test_login_button.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self.test_login_button.clicked.connect(self.test_login)
-        self.test_login_button.setStyleSheet(theme_manager.get_button_style('secondary'))
+        apply_button_style(self.test_login_button, 'secondary')
         test_login_layout.addWidget(self.test_login_button)
         
         form_layout.addWidget(test_login_container)
@@ -110,21 +136,28 @@ class LoginWindow(QMainWindow):
         main_layout.addStretch()
         
         # Add footer
-        footer_label = QLabel("© 2023 ППСД")
+        footer_label = QLabel("© 2025 ППСД")
         footer_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        footer_label.setFont(QFont("Segoe UI", 9))
+        footer_label.setObjectName("loginFooter")
         main_layout.addWidget(footer_label)
         
         # Connect enter key to login
         self.username_input.returnPressed.connect(self.login)
         self.password_input.returnPressed.connect(self.login)
         
-        # Стилизация полей ввода
-        self.username_input.setStyleSheet(theme_manager.get_input_style())
-        self.password_input.setStyleSheet(theme_manager.get_input_style())
-        
         # Set initial focus
         self.username_input.setFocus()
     
+    def refresh_styles(self):
+        """Обновить стили после смены темы"""
+        try:
+            # Применяем новую тему
+            self.setStyleSheet(theme_manager.get_current_stylesheet())
+            self.update()
+        except Exception as e:
+            print(f"Ошибка обновления стилей в login_window: {e}")
+
     def login(self):
         """Handle login button click"""
         username = self.username_input.text().strip()

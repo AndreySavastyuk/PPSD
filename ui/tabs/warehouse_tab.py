@@ -3,7 +3,7 @@ from PySide6.QtWidgets import (
     QTableWidget, QTableWidgetItem, QComboBox, QLineEdit,
     QFormLayout, QMessageBox, QFileDialog, QHeaderView,
     QGroupBox, QSpinBox, QDoubleSpinBox, QDialog, QInputDialog,
-    QSplitter, QFrame, QMenu
+    QSplitter, QFrame, QMenu, QSizePolicy
 )
 from PySide6.QtCore import Qt, QDateTime
 from PySide6.QtGui import QFont, QIcon, QPixmap, QColor, QBrush, QAction
@@ -16,7 +16,7 @@ from sqlalchemy import desc, and_, or_
 from ui.tabs.warehouse_entry_form import WarehouseEntryForm
 from ui.icons.icon_provider import IconProvider
 from ui.styles import (apply_button_style, apply_input_style, apply_combobox_style, 
-                       apply_table_style)
+                       apply_table_style, refresh_table_style)
 from ui.themes import theme_manager
 from ui.dialogs.advanced_search_dialog import AdvancedSearchDialog
 from utils.material_utils import clean_material_grade, get_material_type_display, get_status_display_name
@@ -28,44 +28,45 @@ class WarehouseTab(QWidget):
         self.parent = parent
         self.init_ui()
         
+    def refresh_styles(self):
+        """Обновить стили после смены темы"""
+        try:
+            # Обновляем стили таблицы
+            if hasattr(self, 'materials_table'):
+                refresh_table_style(self.materials_table)
+                
+            # Обновляем другие элементы при необходимости
+            self.update()
+        except Exception as e:
+            print(f"Ошибка обновления стилей в warehouse_tab: {e}")
+        
     def init_ui(self):
         """Initialize the UI components"""
         main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(12, 12, 12, 12)
+        main_layout.setSpacing(12)
         
         # Create title with modern стиль
         title_layout = QHBoxLayout()
         
         title_label = QLabel("Учет материалов на складе")
-        title_label.setFont(QFont("Segoe UI", 14, QFont.Weight.Bold))
-        title_label.setStyleSheet(f"color: {theme_manager.get_color('primary')};")
+        title_label.setFont(QFont("Segoe UI", 16, QFont.Weight.Bold))
         title_layout.addWidget(title_label)
         
         title_layout.addStretch()
         
         main_layout.addLayout(title_layout)
         
-        # Separator line
-        separator = QFrame()
-        separator.setFrameShape(QFrame.Shape.HLine)
-        separator.setFrameShadow(QFrame.Shadow.Sunken)
-        separator.setStyleSheet(f"background-color: {theme_manager.get_color('border')};")
-        main_layout.addWidget(separator)
-        
-        # Create toolbar with spacing and padding
-        toolbar_widget = QWidget()
-        toolbar_widget.setStyleSheet(f"""
-            background-color: {theme_manager.get_color('card')};
-            border-radius: 8px;
-            padding: 8px;
-        """)
+        # Create toolbar with flexible layout
+        toolbar_widget = QFrame()
+        toolbar_widget.setFrameStyle(QFrame.Shape.StyledPanel)
         toolbar_layout = QHBoxLayout(toolbar_widget)
-        toolbar_layout.setContentsMargins(8, 8, 8, 8)
-        toolbar_layout.setSpacing(10)  # Увеличиваем расстояние между кнопками
+        toolbar_layout.setContentsMargins(12, 8, 12, 8)
+        toolbar_layout.setSpacing(8)
         
         # Add new material button with icon
         self.add_btn = QPushButton("Добавить материал")
         self.add_btn.setIcon(IconProvider.create_material_entry_icon())
-        self.add_btn.setMinimumWidth(150)  # Устанавливаем минимальную ширину
         apply_button_style(self.add_btn, 'secondary')
         self.add_btn.clicked.connect(self.show_add_material_form)
         toolbar_layout.addWidget(self.add_btn)
@@ -73,7 +74,6 @@ class WarehouseTab(QWidget):
         # Edit material button
         self.edit_btn = QPushButton("Редактировать")
         self.edit_btn.setIcon(IconProvider.create_edit_icon())
-        self.edit_btn.setMinimumWidth(120)  # Устанавливаем минимальную ширину
         apply_button_style(self.edit_btn, 'primary')
         self.edit_btn.clicked.connect(self.edit_selected_material)
         toolbar_layout.addWidget(self.edit_btn)
@@ -81,16 +81,18 @@ class WarehouseTab(QWidget):
         # Сертификаты - кнопка просмотра сертификатов
         self.cert_btn = QPushButton("Сертификаты")
         self.cert_btn.setIcon(IconProvider.create_certificate_icon())
-        self.cert_btn.setMinimumWidth(120)  # Устанавливаем минимальную ширину
         apply_button_style(self.cert_btn, 'primary')
         self.cert_btn.clicked.connect(self.open_certificate_browser)
         toolbar_layout.addWidget(self.cert_btn)
         
-        # Search field with icon
-        search_layout = QHBoxLayout()
-        search_widget = QWidget()
-        search_widget.setLayout(search_layout)
-        search_layout.setContentsMargins(0, 0, 0, 0)
+        # Добавляем растяжку для разделения кнопок действий и поиска
+        toolbar_layout.addStretch()
+        
+        # Search field with icon - теперь гибкий
+        search_widget = QFrame()
+        search_layout = QHBoxLayout(search_widget)
+        search_layout.setContentsMargins(4, 4, 4, 4)
+        search_layout.setSpacing(4)
         
         search_icon_label = QLabel()
         search_icon_label.setPixmap(IconProvider.create_search_icon().pixmap(16, 16))
@@ -98,18 +100,17 @@ class WarehouseTab(QWidget):
         
         self.search_input = QLineEdit()
         self.search_input.setPlaceholderText("Поиск по марке, партии, плавке...")
-        self.search_input.setStyleSheet(theme_manager.get_input_style())
-        self.search_input.setMinimumWidth(200)  # Устанавливаем минимальную ширину
+        apply_input_style(self.search_input, 'search')
         self.search_input.textChanged.connect(self.filter_materials)
         search_layout.addWidget(self.search_input)
         
         toolbar_layout.addWidget(search_widget)
         
-        # Status filter with icon
-        filter_layout = QHBoxLayout()
-        filter_widget = QWidget()
-        filter_widget.setLayout(filter_layout)
-        filter_layout.setContentsMargins(0, 0, 0, 0)
+        # Status filter with icon - гибкий
+        filter_widget = QFrame()
+        filter_layout = QHBoxLayout(filter_widget)
+        filter_layout.setContentsMargins(4, 4, 4, 4)
+        filter_layout.setSpacing(4)
         
         filter_icon_label = QLabel()
         filter_icon_label.setPixmap(IconProvider.create_filter_icon().pixmap(16, 16))
@@ -119,8 +120,7 @@ class WarehouseTab(QWidget):
         self.status_filter.addItem("Все статусы", "")
         for status in MaterialStatus:
             self.status_filter.addItem(get_status_display_name(status.value), status.value)
-        self.status_filter.setStyleSheet(theme_manager.get_input_style())
-        self.status_filter.setMinimumWidth(120)  # Устанавливаем минимальную ширину
+        apply_combobox_style(self.status_filter)
         self.status_filter.currentIndexChanged.connect(self.filter_materials)
         filter_layout.addWidget(self.status_filter)
         
@@ -129,68 +129,66 @@ class WarehouseTab(QWidget):
         # Кнопка расширенного поиска
         self.advanced_search_btn = QPushButton("Расширенный поиск")
         self.advanced_search_btn.setIcon(IconProvider.create_filter_icon())
-        self.advanced_search_btn.setMinimumWidth(150)  # Устанавливаем минимальную ширину
-        apply_button_style(self.advanced_search_btn, 'neutral')
+        apply_button_style(self.advanced_search_btn, 'default')
         self.advanced_search_btn.clicked.connect(self.show_advanced_search)
         toolbar_layout.addWidget(self.advanced_search_btn)
         
         # Refresh button
         self.refresh_btn = QPushButton("Обновить")
         self.refresh_btn.setIcon(IconProvider.create_refresh_icon())
-        self.refresh_btn.setMinimumWidth(100)  # Устанавливаем минимальную ширину
-        apply_button_style(self.refresh_btn, 'neutral')
+        apply_button_style(self.refresh_btn, 'default')
         self.refresh_btn.clicked.connect(self.load_materials)
         toolbar_layout.addWidget(self.refresh_btn)
         
-        # Separator
-        toolbar_layout.addWidget(QLabel(" | "))
+        main_layout.addWidget(toolbar_widget)
+        
+        # Второй ряд кнопок для управления
+        actions_widget = QFrame()
+        actions_widget.setFrameStyle(QFrame.Shape.StyledPanel)
+        actions_layout = QHBoxLayout(actions_widget)
+        actions_layout.setContentsMargins(12, 8, 12, 8)
+        actions_layout.setSpacing(8)
         
         # Status management button
         self.change_status_btn = QPushButton("Изменить статус")
         self.change_status_btn.setIcon(IconProvider.create_status_change_icon())
-        self.change_status_btn.setMinimumWidth(130)  # Устанавливаем минимальную ширину
-        apply_button_style(self.change_status_btn, 'warning')
+        apply_button_style(self.change_status_btn, 'default')
         self.change_status_btn.clicked.connect(self.change_status)
-        toolbar_layout.addWidget(self.change_status_btn)
+        actions_layout.addWidget(self.change_status_btn)
         
         # QR code generator button
         self.qr_btn = QPushButton("QR-код")
         self.qr_btn.setIcon(IconProvider.create_qr_code_icon())
-        self.qr_btn.setMinimumWidth(90)  # Устанавливаем минимальную ширину
-        apply_button_style(self.qr_btn, 'special')
+        apply_button_style(self.qr_btn, 'default')
         self.qr_btn.clicked.connect(self.generate_sample_qr)
-        toolbar_layout.addWidget(self.qr_btn)
+        actions_layout.addWidget(self.qr_btn)
         
         # Excel export button
         self.excel_btn = QPushButton("Экспорт")
         self.excel_btn.setIcon(IconProvider.create_excel_icon())
-        self.excel_btn.setMinimumWidth(90)  # Устанавливаем минимальную ширину
         apply_button_style(self.excel_btn, 'secondary')
         self.excel_btn.clicked.connect(self.export_to_excel)
-        toolbar_layout.addWidget(self.excel_btn)
+        actions_layout.addWidget(self.excel_btn)
         
-        main_layout.addWidget(toolbar_widget)
+        actions_layout.addStretch()
         
-        # Container for table with frame and spacing
+        main_layout.addWidget(actions_widget)
+        
+        # Container for table with flexible sizing
         table_container = QFrame()
-        table_container.setFrameShape(QFrame.Shape.StyledPanel)
-        table_container.setStyleSheet(f"""
-            background-color: {theme_manager.get_color('card')};
-            border: 1px solid {theme_manager.get_color('border')};
-            border-radius: 8px;
-            padding: 8px;
-        """)
+        table_container.setFrameStyle(QFrame.Shape.StyledPanel)
+        table_container.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         
         table_layout = QVBoxLayout(table_container)
-        table_layout.setContentsMargins(8, 8, 8, 8)
+        table_layout.setContentsMargins(12, 12, 12, 12)
+        table_layout.setSpacing(8)
         
         # Table title
         table_title = QLabel("Материалы на складе")
-        table_title.setFont(QFont("Segoe UI", 12, QFont.Weight.Bold))
-        table_title.setStyleSheet(f"color: {theme_manager.get_color('text_primary')};")
+        table_title.setFont(QFont("Segoe UI", 14, QFont.Weight.Bold))
         table_layout.addWidget(table_title)
         
-        # Create materials table (убираем колонку ID)
+        # Create materials table с гибкими размерами
         self.materials_table = QTableWidget()
         self.materials_table.setColumnCount(11)  # Расширено до 11 колонок
         self.materials_table.setHorizontalHeaderLabels([
@@ -198,11 +196,13 @@ class WarehouseTab(QWidget):
             "Партия", "Общая длина/площадь", "Дата прихода", "Статус", "Поставщик"
         ])
         
-        # Set column widths
+        # Применяем гибкие стили к таблице
+        apply_table_style(self.materials_table)
+        
+        # Set column resize modes для лучшей адаптивности
         header = self.materials_table.horizontalHeader()
-        # Настраиваем ширины колонок
         header.setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)  # Номер заказа
-        header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)  # Марка материала
+        header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)  # Марка материала - растягивается
         header.setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)  # Вид проката
         header.setSectionResizeMode(3, QHeaderView.ResizeMode.ResizeToContents)  # Размер
         header.setSectionResizeMode(4, QHeaderView.ResizeMode.ResizeToContents)  # Плавка
@@ -212,60 +212,6 @@ class WarehouseTab(QWidget):
         header.setSectionResizeMode(8, QHeaderView.ResizeMode.ResizeToContents)  # Дата прихода
         header.setSectionResizeMode(9, QHeaderView.ResizeMode.ResizeToContents)  # Статус
         header.setSectionResizeMode(10, QHeaderView.ResizeMode.ResizeToContents)  # Поставщик
-        
-        # Устанавливаем минимальные размеры для важных колонок
-        self.materials_table.horizontalHeader().setMinimumSectionSize(60)
-        
-        # Включаем нумерацию строк с минимальной шириной
-        self.materials_table.verticalHeader().setVisible(True)
-        self.materials_table.verticalHeader().setMinimumWidth(40)
-        self.materials_table.verticalHeader().setDefaultSectionSize(36)
-        
-        # Включаем выделение строк
-        self.materials_table.setSelectionBehavior(QTableWidget.SelectRows)
-        self.materials_table.setSelectionMode(QTableWidget.SingleSelection)
-        
-        # Устанавливаем автоматическую высоту строк с минимальным значением для предотвращения "съедания" текста
-        self.materials_table.verticalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
-        self.materials_table.verticalHeader().setMinimumSectionSize(30)  # Минимальная высота строки
-        
-        # Запрещаем редактирование ячеек
-        self.materials_table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
-        
-        # Улучшаем читаемость границ и отображение
-        self.materials_table.setShowGrid(True)
-        self.materials_table.setGridStyle(Qt.PenStyle.SolidLine)
-        
-        # Стили для таблицы с улучшенной подсветкой выбранной строки и четкими границами
-        self.materials_table.setStyleSheet(f"""
-            {theme_manager.get_table_style()}
-            QTableWidget {{
-                gridline-color: {theme_manager.get_color('border')};
-                border: 1px solid {theme_manager.get_color('border')};
-                padding: 5px;
-            }}
-            QTableWidget::item {{
-                padding: 5px;
-                border-bottom: 1px solid {theme_manager.get_color('border')};
-            }}
-            QTableWidget::item:selected {{
-                background-color: {theme_manager.get_color('primary')};
-                color: white;
-            }}
-            QTableWidget::item:hover:!selected {{
-                background-color: {theme_manager.get_color('hover')};
-            }}
-            QHeaderView::section {{
-                background-color: {theme_manager.get_color('header')};
-                color: {theme_manager.get_color('text_primary')};
-                font-weight: bold;
-                padding: 6px;
-                border: 1px solid {theme_manager.get_color('border')};
-            }}
-        """)
-        
-        # Включаем чередование строк для лучшей читаемости
-        self.materials_table.setAlternatingRowColors(True)
         
         # Настраиваем контекстное меню для таблицы
         self.materials_table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
@@ -280,18 +226,17 @@ class WarehouseTab(QWidget):
         status_layout = QHBoxLayout()
         
         self.table_status_label = QLabel("Загрузка данных...")
-        self.table_status_label.setStyleSheet(f"color: {theme_manager.get_color('text_secondary')};")
         status_layout.addWidget(self.table_status_label)
         
         status_layout.addStretch()
         
         self.records_count_label = QLabel("Записей: 0")
-        self.records_count_label.setStyleSheet(f"color: {theme_manager.get_color('primary')}; font-weight: bold;")
+        self.records_count_label.setFont(QFont("Segoe UI", 10, QFont.Weight.Bold))
         status_layout.addWidget(self.records_count_label)
         
         table_layout.addLayout(status_layout)
         
-        main_layout.addWidget(table_container, 1)  # 1 = stretch factor
+        main_layout.addWidget(table_container, 1)  # 1 = stretch factor для расширения таблицы
         
         # Load materials
         self.load_materials()

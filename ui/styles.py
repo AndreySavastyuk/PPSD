@@ -1,243 +1,170 @@
 """
 Общие стили для приложения ППСД
+Теперь использует QSS файлы и гибкие размеры
 """
 
 from ui.themes import theme_manager
-from PySide6.QtWidgets import QHeaderView, QTableWidget
+from PySide6.QtWidgets import QHeaderView, QTableWidget, QSizePolicy
 from PySide6.QtCore import Qt
 
 # Функция для применения стилей к кнопкам
 def apply_button_style(button, style_type='default'):
     """
-    Применить стиль к кнопке
+    Применить стиль к кнопке с гибкими размерами
     
     Args:
         button: Кнопка (QPushButton)
-        style_type: Тип стиля ('default')
+        style_type: Тип стиля ('default', 'primary', 'secondary', 'danger')
     """
     try:
-        # Устанавливаем минимальные размеры кнопки для предотвращения наложения
-        button.setMinimumWidth(80)
-        button.setMinimumHeight(30)
+        # Убираем фиксированные размеры, используем минимальные для предотвращения наложения
+        button.setMinimumSize(80, 32)
         
-        # Используем цветные стили из theme_manager
-        if style_type == 'default':
-            style_type = 'primary'  # Для обратной совместимости
-        button.setStyleSheet(theme_manager.get_button_style(style_type))
-    except Exception:
-        # Фолбек на случай ошибки
-        button.setStyleSheet('''
-            QPushButton {
-                font-size: 14px;
-                padding: 5px 12px;
-                border-radius: 4px;
-                color: #222;
-                background: #f8f8f8;
-                border: 1px solid #bbb;
-                text-shadow: 1px 1px 2px #fff;
-                min-width: 80px;
-                min-height: 30px;
-            }
-            QPushButton:hover {
-                background: #e0e0e0;
-            }
-        ''')
+        # Устанавливаем гибкую политику размеров
+        button.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
+        
+        # Применяем стили через theme_manager (используется QSS)
+        if hasattr(button, 'setProperty'):
+            button.setProperty("style_type", style_type)
+            
+        # QSS стили будут применены автоматически через основную тему
+        
+    except Exception as e:
+        print(f"Ошибка применения стиля кнопки: {e}")
 
 # Функция для применения стилей к полям ввода
 def apply_input_style(input_widget, style_type='default'):
     """
-    Применить стиль к полю ввода
+    Применить стиль к полю ввода с гибкими размерами
     
     Args:
         input_widget: Поле ввода (QLineEdit, QTextEdit, QPlainTextEdit)
         style_type: Тип стиля ('default', 'search')
     """
     try:
-        # Используем стили из theme_manager
-        input_widget.setStyleSheet(theme_manager.get_input_style())
-    except Exception:
-        # Фолбек на случай ошибки
-        input_widget.setStyleSheet("""
-            QLineEdit, QTextEdit, QPlainTextEdit {
-                border: 2px solid #E0E0E0;
-                border-radius: 4px;
-                padding: 8px;
-                font-size: 14px;
-                background-color: #FFFFFF;
-            }
-            QLineEdit:focus, QTextEdit:focus, QPlainTextEdit:focus {
-                border-color: #2196F3;
-            }
-            QLineEdit:disabled, QTextEdit:disabled, QPlainTextEdit:disabled {
-                background-color: #F5F5F5;
-                color: #757575;
-            }
-        """)
+        # Убираем фиксированные размеры
+        input_widget.setMinimumHeight(32)
+        
+        # Устанавливаем гибкую политику размеров
+        input_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        
+        # QSS стили применятся автоматически
+        if hasattr(input_widget, 'setProperty'):
+            input_widget.setProperty("input_type", style_type)
+            
+    except Exception as e:
+        print(f"Ошибка применения стиля поля ввода: {e}")
 
 # Функция для применения стилей к комбобоксам
 def apply_combobox_style(combobox, style_type='default'):
     """
-    Применить стиль к комбобоксу
+    Применить стиль к комбобоксу с гибкими размерами
     
     Args:
         combobox: Комбобокс (QComboBox)
         style_type: Тип стиля ('default')
     """
     try:
-        # Используем стили из theme_manager
-        combobox.setStyleSheet(theme_manager.get_input_style())
-    except Exception:
-        # Фолбек на случай ошибки
-        combobox.setStyleSheet("""
-            QComboBox {
-                border: 2px solid #E0E0E0;
-                border-radius: 4px;
-                padding: 8px;
-                font-size: 14px;
-                min-width: 150px;
-                background-color: #FFFFFF;
-            }
-            QComboBox:focus {
-                border-color: #2196F3;
-            }
-            QComboBox::drop-down {
-                border: none;
-                width: 20px;
-            }
-            QComboBox::down-arrow {
-                image: none;
-                border-left: 5px solid transparent;
-                border-right: 5px solid transparent;
-                border-top: 5px solid #757575;
-            }
-            QComboBox QAbstractItemView {
-                border: 1px solid #E0E0E0;
-                background-color: #FFFFFF;
-                selection-background-color: #BBDEFB;
-            }
-        """)
+        # Убираем фиксированные размеры
+        combobox.setMinimumSize(120, 32)
+        
+        # Устанавливаем гибкую политику размеров
+        combobox.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        
+        # QSS стили применятся автоматически
+        if hasattr(combobox, 'setProperty'):
+            combobox.setProperty("combo_type", style_type)
+            
+    except Exception as e:
+        print(f"Ошибка применения стиля комбобокса: {e}")
 
 # Функция для применения стилей к таблицам
 def apply_table_style(table, style_type='default'):
     """
-    Применить стиль к таблице
+    Применить стиль к таблице с гибкими размерами и растяжением
     
     Args:
         table: Таблица (QTableWidget, QTableView)
         style_type: Тип стиля ('default')
     """
     try:
+        # Убираем все фиксированные размеры, используем гибкие политики
+        table.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        
         # Настройка вертикального заголовка (номера строк)
         table.verticalHeader().setVisible(True)
-        table.verticalHeader().setDefaultSectionSize(40)  # Высота строк
-        table.verticalHeader().setMinimumWidth(50)  # Ширина столбца с номерами
-        table.verticalHeader().setFixedWidth(50)
+        table.verticalHeader().setDefaultSectionSize(48)  # Увеличенная высота строк для лучшей читаемости
+        table.verticalHeader().setMinimumWidth(80)  # Увеличенная минимальная ширина столбца с номерами
+        table.verticalHeader().setMinimumSectionSize(36)  # Минимальная высота = шрифт 14px + зазор
+        # Убираем setFixedWidth - используем минимальную ширину
         
-        # Настройка горизонтального заголовка
+        # Настройка горизонтального заголовка с растяжением
         header = table.horizontalHeader()
-        header.setMinimumHeight(45)  # Увеличенная высота заголовка
-        header.setDefaultSectionSize(120)  # Стандартная ширина колонок
-        header.setMinimumSectionSize(80)  # Минимальная ширина колонок
+        header.setMinimumHeight(48)  # Увеличенная минимальная высота заголовка
+        header.setDefaultSectionSize(140)  # Увеличенная начальная ширина колонок
+        header.setMinimumSectionSize(100)  # Увеличенная минимальная ширина колонок
         
-        # Отключаем изменение размеров пользователем для определенности
+        # Включаем растяжение последней колонки и пропорциональное изменение размеров
+        header.setStretchLastSection(True)
+        header.setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
+        
+        # Для лучшего поведения можно использовать ResizeToContents для некоторых колонок
+        # header.setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
+        
+        # Отключаем перемещение колонок для стабильности
         header.setSectionsMovable(False)
         
-        # Улучшение стиля таблицы
+        # Улучшение настроек таблицы
         table.setShowGrid(True)
         table.setGridStyle(Qt.PenStyle.SolidLine)
         table.setAlternatingRowColors(True)
         table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         
-        # Стили CSS для улучшения внешнего вида
-        table.setStyleSheet(f'''
-            QTableWidget, QTableView {{
-                gridline-color: {theme_manager.get_color('border')};
-                border: 1px solid {theme_manager.get_color('border')};
-                selection-background-color: {theme_manager.get_color('primary')};
-                selection-color: white;
-                alternate-background-color: {theme_manager.get_color('table_alternate')};
-                background-color: {theme_manager.get_color('table_background')};
-            }}
-            
-            QTableWidget::item, QTableView::item {{
-                padding: 6px 8px;
-                border-bottom: 1px solid {theme_manager.get_color('border')};
-                text-shadow: 1px 1px 1px #fff;
-                font-size: 14px;
-            }}
-            
-            QHeaderView::section {{
-                background-color: {theme_manager.get_color('table_header')};
-                color: {theme_manager.get_color('table_header_text')};
-                font-weight: bold;
-                padding: 8px;
-                border: 1px solid {theme_manager.get_color('border')};
-                min-height: 45px;
-                font-size: 14px;
-                text-shadow: 1px 1px 1px #fff;
-            }}
-            
-            QHeaderView::section:vertical {{
-                min-width: 50px;
-                background-color: {theme_manager.get_color('header')};
-                color: {theme_manager.get_color('text_secondary')};
-                text-align: center;
-            }}
-        ''')
+        # Улучшенные настройки для лучшей производительности
+        table.setVerticalScrollMode(QTableWidget.ScrollMode.ScrollPerPixel)
+        table.setHorizontalScrollMode(QTableWidget.ScrollMode.ScrollPerPixel)
         
-        # Настройка авторазмера для всех колонок
+        # QSS стили применятся автоматически через тему
+        
+        # Автоматическое изменение размеров колонок под содержимое
         table.resizeColumnsToContents()
         
-        # Ограничение максимальной ширины колонок
-        max_width = 300
+        # Ограничение максимальной ширины колонок для лучшего отображения
+        max_width = 350  # Увеличиваем максимальную ширину
         for col in range(table.columnCount()):
             width = table.columnWidth(col)
             if width > max_width:
                 table.setColumnWidth(col, max_width)
+            elif width < 100:  # Устанавливаем минимальную ширину
+                table.setColumnWidth(col, 100)
         
     except Exception as e:
         print(f"Ошибка при настройке таблицы: {e}")
-        table.setStyleSheet('''
-            QTableWidget, QTableView {
-                gridline-color: #E0E0E0;
-                background-color: #FFFFFF;
-                alternate-background-color: #F9F9F9;
-                selection-background-color: #BBDEFB;
-                border: 1px solid #E0E0E0;
-            }
-            QTableWidget::item, QTableView::item {
-                padding: 8px;
-                border-bottom: 1px solid #EEEEEE;
-                text-shadow: 1px 1px 2px #fff;
-                font-size: 14px;
-            }
-            QTableWidget::item:selected, QTableView::item:selected {
-                background-color: #2196F3;
-                color: white;
-            }
-            QHeaderView::section {
-                background-color: #F5F5F5;
-                padding: 8px;
-                border: 1px solid #E0E0E0;
-                font-weight: bold;
-                color: #212121;
-                min-height: 45px;
-                min-width: 60px;
-                font-size: 14px;
-                text-shadow: 1px 1px 1px #fff;
-            }
-            QHeaderView::section:vertical {
-                min-width: 50px;
-                background-color: #EEEEEE;
-                color: #757575;
-            }
-        ''')
+
+# Добавляем метод для обновления стилей таблицы после изменения темы
+def refresh_table_style(table):
+    """
+    Обновить стили таблицы после смены темы
+    
+    Args:
+        table: Таблица (QTableWidget, QTableView)
+    """
+    try:
+        # Принудительно обновляем размеры колонок
+        table.resizeColumnsToContents()
         
-        # Применяем базовые настройки даже в случае ошибки
-        table.verticalHeader().setDefaultSectionSize(40)
-        table.verticalHeader().setMinimumWidth(50)
-        table.horizontalHeader().setMinimumHeight(45)
-        table.setAlternatingRowColors(True)
+        # Обновляем viewport для перерисовки
+        table.viewport().update()
+        
+        # Применяем минимальные размеры заново
+        for col in range(table.columnCount()):
+            width = table.columnWidth(col)
+            if width < 100:
+                table.setColumnWidth(col, 100)
+        
+    except Exception as e:
+        print(f"Ошибка обновления стилей таблицы: {e}")
 
 # Функция для применения стилей к диалогам
 def apply_dialog_style(dialog):
