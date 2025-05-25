@@ -2,7 +2,8 @@ from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushB
                              QTableWidget, QTableWidgetItem, QComboBox, QLineEdit,
                              QFormLayout, QMessageBox, QFileDialog, QHeaderView,
                              QGroupBox, QCheckBox, QDialog, QTextEdit, QScrollArea,
-                             QSplitter, QFrame, QMenu, QSpinBox, QDoubleSpinBox)
+                             QSplitter, QFrame, QMenu, QSpinBox, QDoubleSpinBox,
+                             QSizePolicy)
 from PySide6.QtCore import Qt, QDateTime, QRegularExpression
 from PySide6.QtGui import QFont, QColor, QBrush, QRegularExpressionValidator, QAction
 
@@ -15,7 +16,8 @@ import datetime
 from utils.material_utils import clean_material_grade, get_material_type_display, get_status_display_name
 from ui.icons.icon_provider import IconProvider
 from ui.themes import theme_manager
-from ui.styles import apply_button_style
+from ui.styles import (apply_button_style, apply_input_style, apply_combobox_style, 
+                       apply_table_style, refresh_table_style)
 
 class QCCheckForm(QDialog):
     def __init__(self, material_id, user, parent=None):
@@ -33,11 +35,17 @@ class QCCheckForm(QDialog):
         self.setWindowTitle("Проверка сертификата ОТК")
         self.setMinimumSize(1000, 700)
         
-        main_layout = QVBoxLayout(self)
+        # Применяем QSS стили
+        self.setStyleSheet(theme_manager.get_current_stylesheet())
         
-        # Material details
+        main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(16, 16, 16, 16)
+        main_layout.setSpacing(12)
+        
+        # Material details с гибким layout
         details_group = QGroupBox("Информация о материале")
-        details_layout = QHBoxLayout()  # Используем горизонтальное расположение для равномерного распределения
+        details_layout = QHBoxLayout()
+        details_layout.setSpacing(20)
         
         # Левая колонка информации
         left_form = QFormLayout()
@@ -55,6 +63,7 @@ class QCCheckForm(QDialog):
         # Добавляем контейнер для левой колонки
         left_widget = QWidget()
         left_widget.setLayout(left_form)
+        left_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
         details_layout.addWidget(left_widget)
         
         # Правая колонка информации
@@ -70,6 +79,7 @@ class QCCheckForm(QDialog):
         # Добавляем контейнер для правой колонки
         right_widget = QWidget()
         right_widget.setLayout(right_form)
+        right_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
         details_layout.addWidget(right_widget)
         
         details_group.setLayout(details_layout)
@@ -77,33 +87,42 @@ class QCCheckForm(QDialog):
         
         # Create splitter for certificate and comments sections
         splitter = QSplitter(Qt.Orientation.Horizontal)
+        splitter.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         
         # Certificate group
         certificate_group = QGroupBox("Сертификат")
         certificate_layout = QVBoxLayout()
+        certificate_layout.setSpacing(12)
         
         upload_layout = QHBoxLayout()
+        upload_layout.setSpacing(8)
+        
         self.certificate_path_label = QLabel("Сертификат не загружен")
+        self.certificate_path_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         upload_layout.addWidget(self.certificate_path_label)
         
         self.upload_btn = QPushButton("Загрузить")
+        apply_button_style(self.upload_btn, 'primary')
         self.upload_btn.clicked.connect(self.upload_certificate)
         upload_layout.addWidget(self.upload_btn)
         
         self.view_btn = QPushButton("Просмотреть")
+        apply_button_style(self.view_btn, 'secondary')
         self.view_btn.clicked.connect(self.view_certificate)
         self.view_btn.setEnabled(False)
         upload_layout.addWidget(self.view_btn)
         
         certificate_layout.addLayout(upload_layout)
         
-        # Используем нижнюю область для чекбоксов - разбиваем на две колонки
+        # Используем гибкий layout для чекбоксов
         checks_container = QWidget()
-        checks_grid = QHBoxLayout(checks_container)  # Горизонтальное расположение
+        checks_grid = QHBoxLayout(checks_container)
+        checks_grid.setSpacing(16)
         
         # Левая колонка - QC check options
         self.quality_checks = QGroupBox("Проверка качества")
         checks_layout = QVBoxLayout()
+        checks_layout.setSpacing(8)
         
         self.certificate_readable = QCheckBox("Сертификат читаемый")
         checks_layout.addWidget(self.certificate_readable)
@@ -118,17 +137,22 @@ class QCCheckForm(QDialog):
         checks_layout.addWidget(self.certificate_data_correct)
         
         self.quality_checks.setLayout(checks_layout)
+        self.quality_checks.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
         checks_grid.addWidget(self.quality_checks)
         
         # Правая колонка - Issues checklist
         self.issues_group = QGroupBox("Замечания")
         issues_layout = QVBoxLayout()
+        issues_layout.setSpacing(8)
         
         # Разделяем замечания на две колонки
         issues_box = QHBoxLayout()
+        issues_box.setSpacing(12)
         
         # Левая колонка замечаний
         left_issues = QVBoxLayout()
+        left_issues.setSpacing(4)
+        
         self.issue_repurchase = QCheckBox("Перекуп")
         left_issues.addWidget(self.issue_repurchase)
         
@@ -143,6 +167,8 @@ class QCCheckForm(QDialog):
         
         # Правая колонка замечаний
         right_issues = QVBoxLayout()
+        right_issues.setSpacing(4)
+        
         self.issue_cracks = QCheckBox("Трещины")
         right_issues.addWidget(self.issue_cracks)
         
@@ -158,14 +184,17 @@ class QCCheckForm(QDialog):
         # Добавляем колонки в контейнер замечаний
         left_issues_widget = QWidget()
         left_issues_widget.setLayout(left_issues)
+        left_issues_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
         issues_box.addWidget(left_issues_widget)
         
         right_issues_widget = QWidget()
         right_issues_widget.setLayout(right_issues)
+        right_issues_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
         issues_box.addWidget(right_issues_widget)
         
         issues_layout.addLayout(issues_box)
         self.issues_group.setLayout(issues_layout)
+        self.issues_group.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
         checks_grid.addWidget(self.issues_group)
         
         certificate_layout.addWidget(checks_container)
@@ -173,46 +202,50 @@ class QCCheckForm(QDialog):
         # PPSD check - отдельный блок снизу
         ppsd_container = QWidget()
         ppsd_layout = QHBoxLayout(ppsd_container)
+        ppsd_layout.setContentsMargins(8, 8, 8, 8)
         
         self.requires_lab = QCheckBox("Требуется проведение ППСД")
-        self.requires_lab.setFont(QFont("Arial", 12, QFont.Weight.Bold))
+        self.requires_lab.setFont(QFont("Segoe UI", 12, QFont.Weight.Bold))
         ppsd_layout.addWidget(self.requires_lab)
-        ppsd_layout.addStretch(1)  # Добавляем растягивающийся элемент, чтобы checkbox был слева
+        ppsd_layout.addStretch(1)
         
         certificate_layout.addWidget(ppsd_container)
         
-        # Chemical composition section
+        # Chemical composition section с адаптивным layout
         chem_group = QGroupBox("Химический состав из сертификата (%)")
         chem_layout = QVBoxLayout()
+        chem_layout.setSpacing(12)
         
-        # Create grid layout for chemical elements
+        # Create adaptive grid layout for chemical elements
         chem_grid = QHBoxLayout()
+        chem_grid.setSpacing(16)
         
         # Left column of chemical elements
         left_chem = QFormLayout()
+        left_chem.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.AllNonFixedFieldsGrow)
         
         self.chem_c = QLineEdit()
         self.chem_c.setPlaceholderText("0.00")
         self.chem_c.setToolTip("Углерод: 0.08% макс.")
-        self.chem_c.setMaximumWidth(80)
+        apply_input_style(self.chem_c)
         left_chem.addRow("C (Углерод):", self.chem_c)
         
         self.chem_si = QLineEdit()
         self.chem_si.setPlaceholderText("0.00")
         self.chem_si.setToolTip("Кремний: 0.8% макс.")
-        self.chem_si.setMaximumWidth(80)
+        apply_input_style(self.chem_si)
         left_chem.addRow("Si (Кремний):", self.chem_si)
         
         self.chem_mn = QLineEdit()
         self.chem_mn.setPlaceholderText("0.00")
         self.chem_mn.setToolTip("Марганец: 2% макс.")
-        self.chem_mn.setMaximumWidth(80)
+        apply_input_style(self.chem_mn)
         left_chem.addRow("Mn (Марганец):", self.chem_mn)
         
         self.chem_s = QLineEdit()
         self.chem_s.setPlaceholderText("0.00")
         self.chem_s.setToolTip("Сера: 0.02% макс.")
-        self.chem_s.setMaximumWidth(80)
+        apply_input_style(self.chem_s)
         left_chem.addRow("S (Сера):", self.chem_s)
         
         # Add left column to grid
@@ -222,29 +255,30 @@ class QCCheckForm(QDialog):
         
         # Middle column of chemical elements
         middle_chem = QFormLayout()
+        middle_chem.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.AllNonFixedFieldsGrow)
         
         self.chem_p = QLineEdit()
         self.chem_p.setPlaceholderText("0.00")
         self.chem_p.setToolTip("Фосфор: 0.035% макс.")
-        self.chem_p.setMaximumWidth(80)
+        apply_input_style(self.chem_p)
         middle_chem.addRow("P (Фосфор):", self.chem_p)
         
         self.chem_cr = QLineEdit()
         self.chem_cr.setPlaceholderText("0.00")
         self.chem_cr.setToolTip("Хром: 17-19%")
-        self.chem_cr.setMaximumWidth(80)
+        apply_input_style(self.chem_cr)
         middle_chem.addRow("Cr (Хром):", self.chem_cr)
         
         self.chem_ni = QLineEdit()
         self.chem_ni.setPlaceholderText("0.00")
         self.chem_ni.setToolTip("Никель: 9-11%")
-        self.chem_ni.setMaximumWidth(80)
+        apply_input_style(self.chem_ni)
         middle_chem.addRow("Ni (Никель):", self.chem_ni)
         
         self.chem_cu = QLineEdit()
         self.chem_cu.setPlaceholderText("0.00")
         self.chem_cu.setToolTip("Медь: 0.3% макс.")
-        self.chem_cu.setMaximumWidth(80)
+        apply_input_style(self.chem_cu)
         middle_chem.addRow("Cu (Медь):", self.chem_cu)
         
         # Add middle column to grid
@@ -254,29 +288,30 @@ class QCCheckForm(QDialog):
         
         # Right column of chemical elements
         right_chem = QFormLayout()
+        right_chem.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.AllNonFixedFieldsGrow)
         
         self.chem_ti = QLineEdit()
         self.chem_ti.setPlaceholderText("0.00")
         self.chem_ti.setToolTip("Титан: 0.4-0.8%")
-        self.chem_ti.setMaximumWidth(80)
+        apply_input_style(self.chem_ti)
         right_chem.addRow("Ti (Титан):", self.chem_ti)
         
         self.chem_al = QLineEdit()
         self.chem_al.setPlaceholderText("0.00")
         self.chem_al.setToolTip("Алюминий")
-        self.chem_al.setMaximumWidth(80)
+        apply_input_style(self.chem_al)
         right_chem.addRow("Al (Алюминий):", self.chem_al)
         
         self.chem_mo = QLineEdit()
         self.chem_mo.setPlaceholderText("0.00")
         self.chem_mo.setToolTip("Молибден")
-        self.chem_mo.setMaximumWidth(80)
+        apply_input_style(self.chem_mo)
         right_chem.addRow("Mo (Молибден):", self.chem_mo)
         
         self.chem_v = QLineEdit()
         self.chem_v.setPlaceholderText("0.00")
         self.chem_v.setToolTip("Ванадий")
-        self.chem_v.setMaximumWidth(80)
+        apply_input_style(self.chem_v)
         right_chem.addRow("V (Ванадий):", self.chem_v)
         
         # Add right column to grid
@@ -286,11 +321,12 @@ class QCCheckForm(QDialog):
         
         # Extra column for less common elements
         extra_chem = QFormLayout()
+        extra_chem.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.AllNonFixedFieldsGrow)
         
         self.chem_nb = QLineEdit()
         self.chem_nb.setPlaceholderText("0.00")
         self.chem_nb.setToolTip("Ниобий")
-        self.chem_nb.setMaximumWidth(80)
+        apply_input_style(self.chem_nb)
         extra_chem.addRow("Nb (Ниобий):", self.chem_nb)
         
         # Add extra column to grid
@@ -730,45 +766,46 @@ class QCTab(QWidget):
         self.parent = parent
         self.viewed_materials = set()  # Track viewed materials
         self.init_ui()
-        
+    
+    def refresh_styles(self):
+        """Обновить стили после смены темы"""
+        try:
+            # Обновляем стили таблицы
+            if hasattr(self, 'materials_table'):
+                refresh_table_style(self.materials_table)
+                
+            # Обновляем другие элементы при необходимости
+            self.update()
+        except Exception as e:
+            print(f"Ошибка обновления стилей в qc_tab: {e}")
+    
     def init_ui(self):
         """Initialize the UI components"""
         main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(12, 12, 12, 12)
+        main_layout.setSpacing(12)
         
         # Create title with modern стиль
         title_layout = QHBoxLayout()
         
         title_label = QLabel("Проверка качества материалов")
-        title_label.setFont(QFont("Segoe UI", 14, QFont.Weight.Bold))
-        title_label.setStyleSheet(f"color: {theme_manager.get_color('primary')};")
+        title_label.setFont(QFont("Segoe UI", 16, QFont.Weight.Bold))
         title_layout.addWidget(title_label)
         
         title_layout.addStretch()
         
         main_layout.addLayout(title_layout)
         
-        # Separator line
-        separator = QFrame()
-        separator.setFrameShape(QFrame.Shape.HLine)
-        separator.setFrameShadow(QFrame.Shadow.Sunken)
-        separator.setStyleSheet(f"background-color: {theme_manager.get_color('border')};")
-        main_layout.addWidget(separator)
-        
-        # Create toolbar with spacing and padding
-        toolbar_widget = QWidget()
-        toolbar_widget.setStyleSheet(f"""
-            background-color: {theme_manager.get_color('card')};
-            border-radius: 8px;
-            padding: 8px;
-        """)
+        # Create toolbar with flexible layout
+        toolbar_widget = QFrame()
+        toolbar_widget.setFrameStyle(QFrame.Shape.StyledPanel)
         toolbar_layout = QHBoxLayout(toolbar_widget)
-        toolbar_layout.setContentsMargins(8, 8, 8, 8)
-        toolbar_layout.setSpacing(10)  # Увеличиваем расстояние между кнопками
+        toolbar_layout.setContentsMargins(12, 8, 12, 8)
+        toolbar_layout.setSpacing(8)
         
         # Check button
         self.check_btn = QPushButton("Проверить материал")
         self.check_btn.setIcon(IconProvider.create_qc_icon())
-        self.check_btn.setMinimumWidth(150)
         apply_button_style(self.check_btn, 'primary')
         self.check_btn.clicked.connect(self.show_check_dialog)
         toolbar_layout.addWidget(self.check_btn)
@@ -776,7 +813,6 @@ class QCTab(QWidget):
         # View check details button
         self.view_btn = QPushButton("Просмотр проверки")
         self.view_btn.setIcon(IconProvider.create_view_icon())
-        self.view_btn.setMinimumWidth(150)
         apply_button_style(self.view_btn, 'secondary')
         self.view_btn.clicked.connect(self.view_check_details)
         toolbar_layout.addWidget(self.view_btn)
@@ -784,16 +820,18 @@ class QCTab(QWidget):
         # Сертификаты - кнопка просмотра сертификатов
         self.cert_btn = QPushButton("Сертификаты")
         self.cert_btn.setIcon(IconProvider.create_certificate_icon())
-        self.cert_btn.setMinimumWidth(120)
         apply_button_style(self.cert_btn, 'primary')
         self.cert_btn.clicked.connect(self.open_certificate_browser)
         toolbar_layout.addWidget(self.cert_btn)
         
-        # Search field with icon
-        search_layout = QHBoxLayout()
-        search_widget = QWidget()
-        search_widget.setLayout(search_layout)
-        search_layout.setContentsMargins(0, 0, 0, 0)
+        # Добавляем растяжку для разделения кнопок действий и поиска
+        toolbar_layout.addStretch()
+        
+        # Search field with icon - теперь гибкий
+        search_widget = QFrame()
+        search_layout = QHBoxLayout(search_widget)
+        search_layout.setContentsMargins(4, 4, 4, 4)
+        search_layout.setSpacing(4)
         
         search_icon_label = QLabel()
         search_icon_label.setPixmap(IconProvider.create_search_icon().pixmap(16, 16))
@@ -801,18 +839,17 @@ class QCTab(QWidget):
         
         self.search_input = QLineEdit()
         self.search_input.setPlaceholderText("Поиск по марке, партии, плавке...")
-        self.search_input.setStyleSheet(theme_manager.get_input_style())
-        self.search_input.setMinimumWidth(200)
+        apply_input_style(self.search_input, 'search')
         self.search_input.textChanged.connect(self.filter_materials)
         search_layout.addWidget(self.search_input)
         
         toolbar_layout.addWidget(search_widget)
         
-        # Status filter with icon
-        filter_layout = QHBoxLayout()
-        filter_widget = QWidget()
-        filter_widget.setLayout(filter_layout)
-        filter_layout.setContentsMargins(0, 0, 0, 0)
+        # Status filter with icon - гибкий
+        filter_widget = QFrame()
+        filter_layout = QHBoxLayout(filter_widget)
+        filter_layout.setContentsMargins(4, 4, 4, 4)
+        filter_layout.setSpacing(4)
         
         filter_icon_label = QLabel()
         filter_icon_label.setPixmap(IconProvider.create_filter_icon().pixmap(16, 16))
@@ -825,8 +862,7 @@ class QCTab(QWidget):
         self.status_filter.addItem("Проверка не пройдена", MaterialStatus.QC_FAILED.value)
         self.status_filter.addItem("На лабораторных", MaterialStatus.LAB_TESTING.value)
         self.status_filter.addItem("Редактирование", MaterialStatus.EDIT_REQUESTED.value)
-        self.status_filter.setStyleSheet(theme_manager.get_input_style())
-        self.status_filter.setMinimumWidth(150)
+        apply_combobox_style(self.status_filter)
         self.status_filter.currentIndexChanged.connect(self.filter_materials)
         filter_layout.addWidget(self.status_filter)
         
@@ -835,33 +871,27 @@ class QCTab(QWidget):
         # Refresh button
         self.refresh_btn = QPushButton("Обновить")
         self.refresh_btn.setIcon(IconProvider.create_refresh_icon())
-        self.refresh_btn.setMinimumWidth(100)
-        apply_button_style(self.refresh_btn, 'neutral')
+        apply_button_style(self.refresh_btn, 'default')
         self.refresh_btn.clicked.connect(self.load_materials)
         toolbar_layout.addWidget(self.refresh_btn)
         
         main_layout.addWidget(toolbar_widget)
         
-        # Container for table with frame and spacing
+        # Container for table with flexible sizing
         table_container = QFrame()
-        table_container.setFrameShape(QFrame.Shape.StyledPanel)
-        table_container.setStyleSheet(f"""
-            background-color: {theme_manager.get_color('card')};
-            border: 1px solid {theme_manager.get_color('border')};
-            border-radius: 8px;
-            padding: 8px;
-        """)
+        table_container.setFrameStyle(QFrame.Shape.StyledPanel)
+        table_container.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         
         table_layout = QVBoxLayout(table_container)
-        table_layout.setContentsMargins(8, 8, 8, 8)
+        table_layout.setContentsMargins(12, 12, 12, 12)
+        table_layout.setSpacing(8)
         
         # Table title
         table_title = QLabel("Материалы на проверке")
-        table_title.setFont(QFont("Segoe UI", 12, QFont.Weight.Bold))
-        table_title.setStyleSheet(f"color: {theme_manager.get_color('text_primary')};")
+        table_title.setFont(QFont("Segoe UI", 14, QFont.Weight.Bold))
         table_layout.addWidget(table_title)
         
-        # Create pending materials table
+        # Create pending materials table с гибкими размерами
         self.materials_table = QTableWidget()
         self.materials_table.setColumnCount(9)
         self.materials_table.setHorizontalHeaderLabels([
@@ -869,10 +899,13 @@ class QCTab(QWidget):
             "Партия", "Сертификат", "Поставщик", "Статус"
         ])
         
-        # Set column widths
+        # Применяем гибкие стили к таблице
+        apply_table_style(self.materials_table)
+        
+        # Set column resize modes для лучшей адаптивности
         header = self.materials_table.horizontalHeader()
         header.setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)  # ID
-        header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)  # Марка материала
+        header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)  # Марка материала - растягивается
         header.setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)  # Вид проката
         header.setSectionResizeMode(3, QHeaderView.ResizeMode.ResizeToContents)  # Размер
         header.setSectionResizeMode(4, QHeaderView.ResizeMode.ResizeToContents)  # Плавка
@@ -881,59 +914,12 @@ class QCTab(QWidget):
         header.setSectionResizeMode(7, QHeaderView.ResizeMode.ResizeToContents)  # Поставщик
         header.setSectionResizeMode(8, QHeaderView.ResizeMode.ResizeToContents)  # Статус
         
-        # Устанавливаем минимальные размеры для важных колонок
-        self.materials_table.horizontalHeader().setMinimumSectionSize(60)
-        
-        # Включаем нумерацию строк с минимальной шириной
-        self.materials_table.verticalHeader().setVisible(True)
-        self.materials_table.verticalHeader().setMinimumWidth(40)
-        self.materials_table.verticalHeader().setDefaultSectionSize(36)
-        
-        # Включаем выделение строк
-        self.materials_table.setSelectionBehavior(QTableWidget.SelectRows)
-        self.materials_table.setSelectionMode(QTableWidget.SingleSelection)
-        
-        # Улучшаем читаемость границ и отображение
-        self.materials_table.setShowGrid(True)
-        self.materials_table.setGridStyle(Qt.PenStyle.SolidLine)
-        
-        # Стили для таблицы с улучшенной подсветкой выбранной строки и четкими границами
-        self.materials_table.setStyleSheet(f"""
-            {theme_manager.get_table_style()}
-            QTableWidget {{
-                gridline-color: {theme_manager.get_color('border')};
-                border: 1px solid {theme_manager.get_color('border')};
-                padding: 5px;
-            }}
-            QTableWidget::item {{
-                padding: 5px;
-                border-bottom: 1px solid {theme_manager.get_color('border')};
-            }}
-            QTableWidget::item:selected {{
-                background-color: {theme_manager.get_color('primary')};
-                color: white;
-            }}
-            QTableWidget::item:hover:!selected {{
-                background-color: {theme_manager.get_color('hover')};
-            }}
-            QHeaderView::section {{
-                background-color: {theme_manager.get_color('header')};
-                color: {theme_manager.get_color('text_primary')};
-                font-weight: bold;
-                padding: 6px;
-                border: 1px solid {theme_manager.get_color('border')};
-            }}
-        """)
-        
-        # Включаем чередование строк для лучшей читаемости
-        self.materials_table.setAlternatingRowColors(True)
-        
         # Настраиваем контекстное меню для таблицы
         self.materials_table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.materials_table.customContextMenuRequested.connect(self.show_context_menu)
         
-        # Двойной клик по строке для просмотра деталей
-        self.materials_table.cellDoubleClicked.connect(self.view_check_details)
+        # Double click to open QC check form
+        self.materials_table.cellDoubleClicked.connect(self.show_qc_check_form)
         
         table_layout.addWidget(self.materials_table)
         
@@ -941,22 +927,21 @@ class QCTab(QWidget):
         status_layout = QHBoxLayout()
         
         self.table_status_label = QLabel("Загрузка данных...")
-        self.table_status_label.setStyleSheet(f"color: {theme_manager.get_color('text_secondary')};")
         status_layout.addWidget(self.table_status_label)
         
         status_layout.addStretch()
         
         self.records_count_label = QLabel("Записей: 0")
-        self.records_count_label.setStyleSheet(f"color: {theme_manager.get_color('primary')}; font-weight: bold;")
+        self.records_count_label.setFont(QFont("Segoe UI", 10, QFont.Weight.Bold))
         status_layout.addWidget(self.records_count_label)
         
         table_layout.addLayout(status_layout)
         
-        main_layout.addWidget(table_container, 1)  # 1 = stretch factor
+        main_layout.addWidget(table_container, 1)  # 1 = stretch factor для расширения таблицы
         
-        # Load materials that need QC
+        # Load materials
         self.load_materials()
-        
+    
     def open_certificate_browser(self):
         """Открыть диалог просмотра сертификатов"""
         from ui.dialogs.certificate_browser_dialog import CertificateBrowserDialog

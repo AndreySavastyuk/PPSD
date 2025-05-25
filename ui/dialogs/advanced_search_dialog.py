@@ -5,11 +5,13 @@
 from PySide6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QLabel, 
                              QLineEdit, QComboBox, QPushButton, QFrame,
                              QDateEdit, QCheckBox, QGroupBox, QGridLayout,
-                             QScrollArea, QButtonGroup, QRadioButton, QDialogButtonBox)
+                             QScrollArea, QButtonGroup, QRadioButton, QDialogButtonBox,
+                             QSizePolicy, QWidget)
 from PySide6.QtCore import Qt, Signal, QDate
 from PySide6.QtGui import QFont, QIcon
 from datetime import datetime, timedelta
 from ui.themes import theme_manager
+from ui.styles import apply_button_style, apply_input_style, apply_combobox_style
 from ui.icons.icon_provider import IconProvider
 from models.models import MaterialStatus, MaterialType
 from database.connection import SessionLocal
@@ -27,9 +29,25 @@ class AdvancedSearchDialog(QDialog):
         self.setWindowTitle("Расширенный поиск")
         self.setWindowIcon(IconProvider.create_search_icon())
         self.setModal(True)
-        self.resize(800, 600)
+        
+        # Используем гибкие размеры
+        self.setMinimumSize(800, 600)
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        
+        # Применяем QSS стили
+        self.setStyleSheet(theme_manager.get_current_stylesheet())
+        
         self.init_ui()
         self.load_data()
+    
+    def refresh_styles(self):
+        """Обновить стили после смены темы"""
+        try:
+            # Применяем новую тему
+            self.setStyleSheet(theme_manager.get_current_stylesheet())
+            self.update()
+        except Exception as e:
+            print(f"Ошибка обновления стилей в advanced_search_dialog: {e}")
     
     def init_ui(self):
         """Инициализация интерфейса"""
@@ -41,14 +59,18 @@ class AdvancedSearchDialog(QDialog):
         title_label = QLabel("Расширенный поиск и фильтрация")
         title_label.setFont(QFont("Segoe UI", 16, QFont.Weight.Bold))
         title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        title_label.setObjectName("searchDialogTitle")
         layout.addWidget(title_label)
         
-        # Создаем прокручиваемую область для фильтров
+        # Создаем прокручиваемую область для фильтров с гибкими размерами
         scroll_area = QScrollArea()
         scroll_area.setWidgetResizable(True)
         scroll_area.setFrameShape(QFrame.Shape.NoFrame)
+        scroll_area.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        scroll_area.setObjectName("searchScrollArea")
         
         scroll_widget = QWidget()
+        scroll_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         scroll_layout = QVBoxLayout(scroll_widget)
         
         if self.search_type == "materials":
@@ -61,7 +83,7 @@ class AdvancedSearchDialog(QDialog):
         scroll_area.setWidget(scroll_widget)
         layout.addWidget(scroll_area)
         
-        # Кнопки
+        # Кнопки с гибким layout
         button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | 
                                     QDialogButtonBox.StandardButton.Cancel |
                                     QDialogButtonBox.StandardButton.Reset)
@@ -70,13 +92,16 @@ class AdvancedSearchDialog(QDialog):
         search_btn = button_box.button(QDialogButtonBox.StandardButton.Ok)
         search_btn.setText("Найти")
         search_btn.setIcon(IconProvider.create_search_icon())
+        apply_button_style(search_btn, 'primary')
         
         cancel_btn = button_box.button(QDialogButtonBox.StandardButton.Cancel)
         cancel_btn.setText("Отмена")
+        apply_button_style(cancel_btn, 'secondary')
         
         clear_btn = button_box.button(QDialogButtonBox.StandardButton.Reset)
         clear_btn.setText("Очистить")
         clear_btn.setIcon(IconProvider.create_filter_icon())
+        apply_button_style(clear_btn, 'default')
         
         # Подключаем сигналы
         button_box.accepted.connect(self.perform_search)
@@ -84,45 +109,28 @@ class AdvancedSearchDialog(QDialog):
         clear_btn.clicked.connect(self.clear_filters)
         
         layout.addWidget(button_box)
-        
-        # Применяем стили
-        self.setStyleSheet(f"""
-            QDialog {{
-                background-color: {theme_manager.get_color('background')};
-                color: {theme_manager.get_color('text')};
-            }}
-            QGroupBox {{
-                font-weight: bold;
-                border: 2px solid {theme_manager.get_color('border')};
-                border-radius: 8px;
-                margin: 8px 0px;
-                padding-top: 8px;
-            }}
-            QGroupBox::title {{
-                subcontrol-origin: margin;
-                left: 10px;
-                padding: 0 8px 0 8px;
-            }}
-        """)
     
     def create_material_filters(self, layout):
         """Создание фильтров для материалов"""
         # Основная информация
         basic_group = QGroupBox("Основная информация")
+        basic_group.setObjectName("searchGroupBox")
         basic_layout = QGridLayout(basic_group)
         
         # Поиск по тексту
         basic_layout.addWidget(QLabel("Поиск по тексту:"), 0, 0)
         self.text_search = QLineEdit()
         self.text_search.setPlaceholderText("Номер партии, марка, поставщик...")
-        self.text_search.setStyleSheet(theme_manager.get_input_style())
+        self.text_search.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        apply_input_style(self.text_search, 'search')
         basic_layout.addWidget(self.text_search, 0, 1, 1, 3)
         
         # Марка материала
         basic_layout.addWidget(QLabel("Марка материала:"), 1, 0)
         self.material_grade = QComboBox()
         self.material_grade.setEditable(True)
-        self.material_grade.setStyleSheet(theme_manager.get_input_style())
+        self.material_grade.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        apply_combobox_style(self.material_grade)
         basic_layout.addWidget(self.material_grade, 1, 1)
         
         # Тип продукта
@@ -132,33 +140,38 @@ class AdvancedSearchDialog(QDialog):
         for material_type in MaterialType:
             display_name = self.get_material_type_display(material_type.value)
             self.product_type.addItem(display_name, material_type.value)
-        self.product_type.setStyleSheet(theme_manager.get_input_style())
+        self.product_type.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        apply_combobox_style(self.product_type)
         basic_layout.addWidget(self.product_type, 1, 3)
         
         # Поставщик
         basic_layout.addWidget(QLabel("Поставщик:"), 2, 0)
         self.supplier = QComboBox()
-        self.supplier.setStyleSheet(theme_manager.get_input_style())
+        self.supplier.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        apply_combobox_style(self.supplier)
         basic_layout.addWidget(self.supplier, 2, 1, 1, 2)
         
         # Номер плавки
         basic_layout.addWidget(QLabel("Номер плавки:"), 3, 0)
         self.melt_number = QLineEdit()
         self.melt_number.setPlaceholderText("Введите номер плавки...")
-        self.melt_number.setStyleSheet(theme_manager.get_input_style())
+        self.melt_number.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        apply_input_style(self.melt_number)
         basic_layout.addWidget(self.melt_number, 3, 1)
         
         # Номер партии
         basic_layout.addWidget(QLabel("Номер партии:"), 3, 2)
         self.batch_number = QLineEdit()
         self.batch_number.setPlaceholderText("Введите номер партии...")
-        self.batch_number.setStyleSheet(theme_manager.get_input_style())
+        self.batch_number.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        apply_input_style(self.batch_number)
         basic_layout.addWidget(self.batch_number, 3, 3)
         
         layout.addWidget(basic_group)
         
         # Статус
         status_group = QGroupBox("Статус материала")
+        status_group.setObjectName("searchGroupBox")
         status_layout = QVBoxLayout(status_group)
         
         self.status_group = QButtonGroup()
@@ -187,6 +200,7 @@ class AdvancedSearchDialog(QDialog):
         
         # Даты
         date_group = QGroupBox("Период")
+        date_group.setObjectName("searchGroupBox")
         date_layout = QGridLayout(date_group)
         
         # Дата поступления
@@ -195,14 +209,16 @@ class AdvancedSearchDialog(QDialog):
         self.date_from = QDateEdit()
         self.date_from.setDate(QDate.currentDate().addDays(-30))
         self.date_from.setCalendarPopup(True)
-        self.date_from.setStyleSheet(theme_manager.get_input_style())
+        self.date_from.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        apply_input_style(self.date_from)
         date_layout.addWidget(self.date_from, 0, 2)
         
         date_layout.addWidget(QLabel("по"), 0, 3)
         self.date_to = QDateEdit()
         self.date_to.setDate(QDate.currentDate())
         self.date_to.setCalendarPopup(True)
-        self.date_to.setStyleSheet(theme_manager.get_input_style())
+        self.date_to.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        apply_input_style(self.date_to)
         date_layout.addWidget(self.date_to, 0, 4)
         
         layout.addWidget(date_group)
@@ -215,13 +231,15 @@ class AdvancedSearchDialog(QDialog):
         additional_layout.addWidget(QLabel("Диаметр/толщина (мм):"), 0, 0)
         self.size_from = QLineEdit()
         self.size_from.setPlaceholderText("от")
-        self.size_from.setStyleSheet(theme_manager.get_input_style())
+        self.size_from.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        apply_input_style(self.size_from)
         additional_layout.addWidget(self.size_from, 0, 1)
         
         additional_layout.addWidget(QLabel("до"), 0, 2)
         self.size_to = QLineEdit()
         self.size_to.setPlaceholderText("до")
-        self.size_to.setStyleSheet(theme_manager.get_input_style())
+        self.size_to.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        apply_input_style(self.size_to)
         additional_layout.addWidget(self.size_to, 0, 3)
         
         # Чекбоксы для дополнительных условий

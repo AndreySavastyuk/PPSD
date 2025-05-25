@@ -1185,44 +1185,53 @@ class IconProvider:
 
     @staticmethod
     def create_dashboard_icon(size=32):
-        """Creates an icon for dashboard (shows grid with charts)"""
+        """Creates a dashboard icon (shows grid layout)"""
         pixmap = QPixmap(size, size)
         pixmap.fill(Qt.GlobalColor.transparent)
         
         painter = QPainter(pixmap)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         
-        # Draw dashboard grid
+        # Draw grid layout
         painter.setPen(QPen(QColor(80, 80, 80), 2))
-        painter.setBrush(QBrush(QColor(240, 240, 240, 180)))
+        painter.setBrush(QBrush(QColor(220, 220, 220, 180)))
         
-        # Top left widget (chart)
-        painter.drawRect(4, 4, size//2-2, size//2-2)
-        painter.setBrush(QBrush(QColor(100, 150, 200, 180)))
-        painter.drawRect(6, 8, 3, 6)
-        painter.drawRect(10, 6, 3, 8)
-        painter.drawRect(14, 10, 3, 4)
+        # Top row
+        painter.drawRoundedRect(6, 6, 8, 8, 2, 2)
+        painter.drawRoundedRect(18, 6, 8, 8, 2, 2)
         
-        # Top right widget (gauge)
-        painter.setBrush(QBrush(QColor(240, 240, 240, 180)))
-        painter.drawRect(size//2+2, 4, size//2-6, size//2-2)
-        painter.setBrush(QBrush(QColor(150, 200, 100, 180)))
-        painter.drawEllipse(size//2+4, 6, size//2-10, size//2-6)
+        # Bottom row  
+        painter.drawRoundedRect(6, 18, 8, 8, 2, 2)
+        painter.drawRoundedRect(18, 18, 8, 8, 2, 2)
         
-        # Bottom left widget (list)
-        painter.setBrush(QBrush(QColor(240, 240, 240, 180)))
-        painter.drawRect(4, size//2+2, size//2-2, size//2-6)
-        painter.setPen(QPen(QColor(120, 120, 120), 1))
-        painter.drawLine(6, size//2+6, size//2-4, size//2+6)
-        painter.drawLine(6, size//2+10, size//2-4, size//2+10)
-        painter.drawLine(6, size//2+14, size//2-4, size//2+14)
+        painter.end()
+        return QIcon(pixmap)
+    
+    @staticmethod
+    def create_user_icon(size=32):
+        """Creates an icon for users (shows a person silhouette)"""
+        pixmap = QPixmap(size, size)
+        pixmap.fill(Qt.GlobalColor.transparent)
         
-        # Bottom right widget (stats)
-        painter.setBrush(QBrush(QColor(240, 240, 240, 180)))
-        painter.drawRect(size//2+2, size//2+2, size//2-6, size//2-6)
-        painter.setPen(QPen(QColor(200, 100, 100), 2))
-        painter.drawLine(size//2+4, size//2+12, size-6, size//2+6)
-        painter.drawLine(size-6, size//2+6, size-4, size//2+10)
+        painter = QPainter(pixmap)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        
+        # Draw user silhouette
+        painter.setPen(QPen(QColor(80, 80, 80), 2))
+        painter.setBrush(QBrush(QColor(220, 220, 220, 180)))
+        
+        # Draw head (circle)
+        head_size = size // 4
+        head_x = size // 2 - head_size // 2
+        head_y = size // 6
+        painter.drawEllipse(head_x, head_y, head_size, head_size)
+        
+        # Draw body (rounded rectangle)
+        body_width = size // 2
+        body_height = size // 2
+        body_x = size // 2 - body_width // 2
+        body_y = head_y + head_size
+        painter.drawRoundedRect(body_x, body_y, body_width, body_height, 4, 4)
         
         painter.end()
         return QIcon(pixmap) 

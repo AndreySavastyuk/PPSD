@@ -43,39 +43,39 @@ class MainWindow(QMainWindow):
         """Initialize the UI components"""
         # Window properties
         self.setWindowTitle("ППСД - Система проверки сертификатных данных")
-        self.setMinimumSize(1200, 800)  # Увеличиваем минимальный размер окна
+        self.setMinimumSize(1200, 800)  # Минимальный размер окна
         
         # Запуск в полноэкранном режиме
         self.showMaximized()
-        
-        # Применяем стили из новой системы тем
-        self.setStyleSheet(theme_manager.generate_stylesheet())
         
         # Create central widget and main layout
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
         
         main_layout = QVBoxLayout(central_widget)
-        main_layout.setContentsMargins(5, 5, 5, 5)  # Уменьшаем отступы
-        main_layout.setSpacing(0)  # Убираем расстояние между элементами
+        main_layout.setContentsMargins(8, 8, 8, 8)  # Равномерные отступы
+        main_layout.setSpacing(8)  # Разумные расстояния между элементами
         
         # Create tab widget for main content
         self.tab_widget = QTabWidget()
-        self.tab_widget.setStyleSheet(theme_manager.generate_stylesheet())
         
-        # Create main content splitter
+        # Create main content splitter с гибкими настройками
         content_splitter = QSplitter(Qt.Orientation.Horizontal)
         content_splitter.addWidget(self.tab_widget)
         
         # Add notification panel if available
         if RealTimeNotificationPanel:
             self.notification_panel = RealTimeNotificationPanel(self)
-            self.notification_panel.setMaximumWidth(300)
-            self.notification_panel.setMinimumWidth(250)
+            # Убираем фиксированные размеры, используем size policy
+            self.notification_panel.setSizePolicy(
+                self.notification_panel.sizePolicy().horizontalPolicy(),
+                self.notification_panel.sizePolicy().verticalPolicy()
+            )
             content_splitter.addWidget(self.notification_panel)
             
-            # Set splitter proportions (main content 70%, notifications 30%)
-            content_splitter.setSizes([700, 300])
+            # Set splitter proportions (main content 75%, notifications 25%)
+            content_splitter.setSizes([1200, 400])
+            content_splitter.setCollapsible(1, True)  # Позволяем скрывать панель уведомлений
         
         main_layout.addWidget(content_splitter)
         
@@ -87,6 +87,9 @@ class MainWindow(QMainWindow):
         
         # Create menu bar
         self.create_menu_bar()
+        
+        # Применяем стили ПОСЛЕ создания всех компонентов
+        self.apply_current_theme()
         
         # Запускаем планировщик задач
         self.start_scheduler()
@@ -462,17 +465,52 @@ class MainWindow(QMainWindow):
         if theme_manager.current_theme == ThemeType.LIGHT:
             theme_manager.set_theme(ThemeType.DARK)
             self.dark_theme_action.setText("☀️ Светлая тема")
+            self.dark_theme_action.setChecked(True)
             notification_manager.show_success("Темная тема активирована", parent_widget=self)
         else:
             theme_manager.set_theme(ThemeType.LIGHT)
             self.dark_theme_action.setText("🌙 Темная тема")
+            self.dark_theme_action.setChecked(False)
             notification_manager.show_success("Светлая тема активирована", parent_widget=self)
         
         # Apply theme to all components
         self.apply_current_theme()
     
     def apply_current_theme(self):
-        """Применение текущей темы ко всему приложению"""
+        """Применение текущей темы ко всему приложению через QSS"""
+        try:
+            # Применяем QSS стили для текущей темы
+            qss_content = theme_manager.get_current_stylesheet()
+            self.setStyleSheet(qss_content)
+            
+            # Обновляем дашборд если он существует
+            if hasattr(self, 'dashboard'):
+                if hasattr(self.dashboard, 'apply_theme'):
+                    self.dashboard.apply_theme()
+                    
+            # Обновляем другие вкладки - QSS применится автоматически
+            # но для специфических виджетов может потребоваться дополнительная обработка
+            self._update_tab_widgets()
+            
+        except Exception as e:
+            print(f"Ошибка применения темы: {e}")
+            # Fallback на старый метод
+            self._apply_legacy_theme()
+    
+    def _update_tab_widgets(self):
+        """Обновление специфических виджетов в вкладках"""
+        # Проверяем, что tab_widget уже создан
+        if not hasattr(self, 'tab_widget') or self.tab_widget is None:
+            return
+            
+        # Обновляем таблицы в вкладках
+        for i in range(self.tab_widget.count()):
+            tab_widget = self.tab_widget.widget(i)
+            if hasattr(tab_widget, 'refresh_styles'):
+                tab_widget.refresh_styles()
+    
+    def _apply_legacy_theme(self):
+        """Legacy метод применения темы через старую систему"""
         # Получаем цвета текущей темы
         colors = theme_manager.get_current_theme()['colors']
         
@@ -480,51 +518,37 @@ class MainWindow(QMainWindow):
         self.setStyleSheet(theme_manager.generate_stylesheet())
         
         # Обновляем стиль для статусной строки
-        self.status_bar.setStyleSheet(f"""
-            QStatusBar {{
-                background-color: {colors['surface']};
-                color: {colors['text_secondary']};
-                border-top: 1px solid {colors['border']};
-            }}
-        """)
+        if hasattr(self, 'status_bar') and self.status_bar is not None:
+            self.status_bar.setStyleSheet(f"""
+                QStatusBar {{
+                    background-color: {colors['surface']};
+                    color: {colors['text_secondary']};
+                    border-top: 1px solid {colors['border']};
+                }}
+            """)
         
-        # Обновляем стиль для вкладок
-        self.tab_widget.setStyleSheet(f"""
-            QTabWidget::pane {{
-                border: 1px solid {colors['border']};
-                background-color: {colors['surface']};
-                border-radius: 8px;
-            }}
-            QTabBar::tab {{
-                background-color: {colors['card']};
-                color: {colors['text_primary']};
-                border: 1px solid {colors['border']};
-                padding: 8px 16px;
-                margin-right: 2px;
-                border-top-left-radius: 8px;
-                border-top-right-radius: 8px;
-            }}
-            QTabBar::tab:selected {{
-                background-color: {colors['primary']};
-                color: white;
-            }}
-        """)
-        
-        # Обновляем дашборд если он существует
-        if hasattr(self, 'dashboard'):
-            self.dashboard.apply_theme()
-            
-        # Обновляем другие вкладки
-        if hasattr(self, 'warehouse_tab'):
-            self.warehouse_tab.setStyleSheet(theme_manager.generate_stylesheet())
-        if hasattr(self, 'qc_tab'):
-            self.qc_tab.setStyleSheet(theme_manager.generate_stylesheet())
-        if hasattr(self, 'lab_tab'):
-            self.lab_tab.setStyleSheet(theme_manager.generate_stylesheet())
-        if hasattr(self, 'admin_tab'):
-            self.admin_tab.setStyleSheet(theme_manager.generate_stylesheet())
-        if hasattr(self, 'production_tab'):
-            self.production_tab.setStyleSheet(theme_manager.generate_stylesheet())
+        # Обновляем стиль для вкладок только если они существуют
+        if hasattr(self, 'tab_widget') and self.tab_widget is not None:
+            self.tab_widget.setStyleSheet(f"""
+                QTabWidget::pane {{
+                    border: 1px solid {colors['border']};
+                    background-color: {colors['surface']};
+                    border-radius: 8px;
+                }}
+                QTabBar::tab {{
+                    background-color: {colors['card']};
+                    color: {colors['text_primary']};
+                    border: 1px solid {colors['border']};
+                    padding: 8px 16px;
+                    margin-right: 2px;
+                    border-top-left-radius: 8px;
+                    border-top-right-radius: 8px;
+                }}
+                QTabBar::tab:selected {{
+                    background-color: {colors['primary']};
+                    color: white;
+                }}
+            """)
     
     def show_success_notification(self, message: str):
         """Показать уведомление об успехе"""

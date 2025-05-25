@@ -285,7 +285,7 @@ class SampleRequest(Base):
     # Отношения
     material_entry = relationship("MaterialEntry", back_populates="sample_requests")
     created_by_user = relationship("User", back_populates="sample_requests", foreign_keys=[created_by_id])
-    manufactured_by_user = relationship("User", foreign_keys=[manufactured_by_id])
+    manufactured_by_user = relationship("User", foreign_keys=[manufactured_by_id], overlaps="manufactured_sample_requests")
     samples = relationship("Sample", back_populates="sample_request", cascade="all, delete-orphan")
 
 class Sample(Base):

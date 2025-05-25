@@ -5,7 +5,7 @@
 
 from PySide6.QtWidgets import (QWidget, QLabel, QHBoxLayout, QVBoxLayout, 
                              QGraphicsEffect, QGraphicsDropShadowEffect,
-                             QApplication)
+                             QApplication, QSizePolicy)
 from PySide6.QtCore import (Qt, QTimer, QPropertyAnimation, QEasingCurve, 
                           QRect, QPoint, Signal)
 from PySide6.QtGui import QPainter, QPen, QBrush, QColor, QFont
@@ -40,7 +40,10 @@ class NotificationWidget(QWidget):
         
     def init_ui(self):
         """Инициализация интерфейса"""
-        self.setFixedSize(350, 80)
+        # Используем минимальный размер вместо фиксированного
+        self.setMinimumSize(350, 80)
+        self.setMaximumSize(400, 120)
+        self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Minimum)
         
         # Основной layout
         layout = QHBoxLayout(self)
@@ -49,6 +52,8 @@ class NotificationWidget(QWidget):
         
         # Иконка
         self.icon_label = QLabel()
+        self.icon_label.setObjectName("notificationIcon")
+        self.icon_label.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
         icon = self.get_notification_icon()
         if icon:
             self.icon_label.setPixmap(icon.pixmap(24, 24))
@@ -58,14 +63,16 @@ class NotificationWidget(QWidget):
         self.text_label = QLabel(self.message)
         self.text_label.setWordWrap(True)
         self.text_label.setFont(QFont("Segoe UI", 11))
+        self.text_label.setObjectName("notificationText")
+        self.text_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
         layout.addWidget(self.text_label, 1)
         
         # Кнопка закрытия
         self.close_label = QLabel("×")
         self.close_label.setFixedSize(20, 20)
         self.close_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.close_label.setFont(QFont("Arial", 16, QFont.Weight.Bold))
-        self.close_label.setStyleSheet("QLabel:hover { background-color: rgba(255,255,255,0.2); border-radius: 10px; }")
+        self.close_label.setFont(QFont("Segoe UI", 16, QFont.Weight.Bold))
+        self.close_label.setObjectName("notificationClose")
         self.close_label.mousePressEvent = self.close_notification
         layout.addWidget(self.close_label)
         
@@ -76,8 +83,10 @@ class NotificationWidget(QWidget):
         shadow.setOffset(0, 4)
         self.setGraphicsEffect(shadow)
         
+        # Устанавливаем объектное имя для стилизации в QSS
+        self.setObjectName(f"notification-{self.notification_type.value}")
+        
         # Таймер автозакрытия
-        # Убедимся, что duration - это число и оно больше 0
         try:
             duration_int = int(self.duration)
             if duration_int > 0:
